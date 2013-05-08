@@ -93,6 +93,27 @@ config MACH_TROUT
 	help
 	  Support for the HTC Dream, T-Mobile G1, Android ADP1 devices.
 
+choice
+        depends on ARCH_QSD8X50
+        prompt "Bravo"
+        default MACH_BRAVO_NONE
+	help
+	  Select this to support the Bravo GSM or CDMA device
+
+	config MACH_BRAVO_NONE
+		bool "None"
+
+        config MACH_BRAVO
+                bool "GSM"
+		help
+		  Select this to support the Bravo GSM device
+
+	config MACH_BRAVOC
+		bool "CDMA"
+		help
+		  Select this to support the Bravo CDMA device
+endchoice
+
 config MACH_MSM7X30_SURF
 	depends on ARCH_MSM7X30
 	bool "MSM7x30 SURF"
@@ -168,3 +189,259 @@ config MSM_V2_TLMM
 config MSM_SCM
 	bool
 endif
+
+config HTC_35MM_JACK
+	bool "HTC 3.5mm headset jack"
+	default n
+	help
+	 Provides support for 3.5mm headset jack devices, like wired headsets.
+
+config HTC_PWRSPLY
+	depends on MSM_ONCRPCROUTER && POWER_SUPPLY && !TROUT_BATTCHG
+	default y
+	bool "HTC Power supply driver"
+	help
+	  Used by HTC devices with a dedicated battery gauge"
+
+config MSM_DAL
+	default n
+	bool "MSM Driver Access Layer (DAL RPC)"
+	help
+	  Support for the DAL RPC interface used to communicate with
+	  the baseband processor or DSP in newer Qualcomm MSM/QSD
+	  chips.
+
+config MSM_ONCRPCROUTER
+	depends on MSM_SMD
+	default y
+	bool "MSM ONCRPC router support"
+	help
+	  Support for the MSM ONCRPC router for communication between
+	  the ARM9 and ARM11
+
+config HTC_ACOUSTIC_QSD
+        tristate "HTC acoustic driver for QSD"
+        depends on ARCH_QSD8X50
+        default y
+        help
+          Provides user space use shared memory allocate by using RPC code.
+          Provides headset amp, mic bias and speaker amp control.
+
+config MSM_QDSP6
+	tristate "QDSP6 support"
+	depends on ARCH_QSD8X50
+	default y
+	help
+	  Enable support for qdsp6. This provides audio and video functionality
+
+config ARCH_MSM_FLASHLIGHT
+        bool "Flashlight Driver"
+        depends on ARCH_MSM
+        help
+          The flashlight driver is for MSM series.
+
+config MSM_FIQ_SUPPORT
+	default y
+	bool "Enable installation of an FIQ handler."
+
+config EXPERIMENTAL_FREQ_TABLE
+	depends on ARCH_QSD8X50
+        default n
+	bool "Use experimental 8X50 freq table"
+        help
+          Allow the use of experimental frequencies upto 1850Mhz for QSD8X50.
+
+##Disabled until ready
+#if CPU_FREQ_MSM
+
+#config MSM_CPU_FREQ_SET_MIN_MAX
+#       bool "Set Min/Max CPU frequencies."
+#       default n
+#       help
+#         Allow setting min and max CPU frequencies. Sysfs can be used
+#         to override these values.
+
+#config MSM_CPU_FREQ_MAX
+#       int "Max CPU Frequency"
+#       depends on MSM_CPU_FREQ_SET_MIN_MAX
+#       default 384000
+
+#config MSM_CPU_FREQ_MIN
+#        int "Min CPU Frequency"
+#        depends on MSM_CPU_FREQ_SET_MIN_MAX
+#        default 245760
+
+#endif # CPU_FREQ_MSM
+
+#config AXI_SCREEN_POLICY
+#	depends on ARCH_QSD8X50 || ARCH_MSM7X00A || ARCH_MSM7227 || ARCH_MSM7225
+#	depends on HAS_EARLYSUSPEND
+#	bool "Use higher AXI bus while screen ON"
+#	default y
+#	help
+#	  Simple AXI scaling based on screen ON/OFF and PWRC.
+
+config QSD_SVS
+	bool "QSD Static Voltage Scaling"
+	depends on (ARCH_MSM_SCORPION)
+	default y
+	help
+	  Enables static voltage scaling using the TPS65023 PMIC.
+
+config MSM_CPU_AVS
+	bool "Enable Hybrid Adaptive Voltage Scaling (HAVS)"
+	depends on (ARCH_MSM_SCORPION && QSD_SVS)
+	default y
+	help
+	  This enables the Adaptive Voltage Scaling feature of
+	  Qualcomm ARMv7 CPUs. It adjusts the voltage for each frequency
+	  based on feedback from three ring oscillators in the CPU.
+
+config QSD_PMIC_DEFAULT_DCDC1
+	int "PMIC default output voltage"
+	depends on (ARCH_MSM_SCORPION)
+	default 1275
+	help
+	  This is the PMIC voltage at Linux kernel boot.
+
+config CACHE_FLUSH_RANGE_LIMIT
+	hex "Cache flush range limit"
+	default 0x40000
+	help
+	  When flushing a cache range larger then this (hex) limit, flush the
+	  entire cache instead. Flushing a large range can be slower than
+	  flushing, then refilling, the entire cache.
+
+config PHYS_OFFSET
+	hex "Physical Offset"
+	default "0x40800000" if ARCH_MSM9615
+	default "0x80200000" if ARCH_APQ8064
+	default "0x80200000" if ARCH_MSM8960
+	default "0x10000000" if ARCH_FSM9XXX
+	default "0x00200000" if !MSM_STACKED_MEMORY
+	default "0x00000000" if ARCH_QSD8X50 && MSM_SOC_REV_A
+	default "0x20000000" if ARCH_QSD8X50
+	default "0x40200000" if ARCH_MSM8X60
+	default "0x10000000"
+
+choice
+	prompt "Default Timer"
+	default MSM7X00A_USE_GP_TIMER
+
+	config MSM7X00A_USE_GP_TIMER
+		bool "GP Timer"
+	help
+	  Low resolution timer that allows power collapse from idle.
+
+	config MSM7X00A_USE_DG_TIMER
+		bool "DG Timer"
+	help
+	  High resolution timer.
+endchoice
+
+choice
+	prompt "Suspend sleep mode"
+	default MSM7X00A_SLEEP_MODE_POWER_COLLAPSE_SUSPEND
+	help
+	  Allows overriding the sleep mode used. Leave at power
+	  collapse suspend unless the arm9 image has problems.
+
+	config MSM7X00A_SLEEP_MODE_POWER_COLLAPSE_SUSPEND
+		bool "Power collapse suspend"
+	help
+	  Lowest sleep state. Returns through reset vector.
+
+	config MSM7X00A_SLEEP_MODE_POWER_COLLAPSE
+		bool "Power collapse"
+	help
+	  Sleep state that returns through reset vector.
+
+	config MSM7X00A_SLEEP_MODE_APPS_SLEEP
+		bool "Apps Sleep"
+
+	config MSM7X00A_SLEEP_MODE_RAMP_DOWN_AND_WAIT_FOR_INTERRUPT
+		bool "Ramp down cpu clock and wait for interrupt"
+
+	config MSM7X00A_SLEEP_WAIT_FOR_INTERRUPT
+		bool "Wait for interrupt"
+endchoice
+
+config MSM7X00A_SLEEP_MODE
+	int
+	default 0 if MSM7X00A_SLEEP_MODE_POWER_COLLAPSE_SUSPEND
+	default 1 if MSM7X00A_SLEEP_MODE_POWER_COLLAPSE
+	default 2 if MSM7X00A_SLEEP_MODE_APPS_SLEEP
+	default 3 if MSM7X00A_SLEEP_MODE_RAMP_DOWN_AND_WAIT_FOR_INTERRUPT
+	default 4 if MSM7X00A_SLEEP_WAIT_FOR_INTERRUPT
+
+choice
+	prompt "Idle sleep mode"
+	default MSM7X00A_IDLE_SLEEP_MODE_POWER_COLLAPSE
+	help
+	  Allows overriding the sleep mode used from idle. Leave at power
+	  collapse suspend unless the arm9 image has problems.
+
+	config MSM7X00A_IDLE_SLEEP_MODE_POWER_COLLAPSE_SUSPEND
+		bool "Power collapse suspend"
+	help
+	  Lowest sleep state. Returns through reset vector.
+
+	config MSM7X00A_IDLE_SLEEP_MODE_POWER_COLLAPSE
+		bool "Power collapse"
+	help
+	  Sleep state that returns through reset vector.
+
+	config MSM7X00A_IDLE_SLEEP_MODE_APPS_SLEEP
+		bool "Apps Sleep"
+
+	config MSM7X00A_IDLE_SLEEP_MODE_RAMP_DOWN_AND_WAIT_FOR_INTERRUPT
+		bool "Ramp down cpu clock and wait for interrupt"
+
+	config MSM7X00A_IDLE_SLEEP_WAIT_FOR_INTERRUPT
+		bool "Wait for interrupt"
+endchoice
+
+config MSM7X00A_IDLE_SLEEP_MODE
+	int
+	default 0 if MSM7X00A_IDLE_SLEEP_MODE_POWER_COLLAPSE_SUSPEND
+	default 1 if MSM7X00A_IDLE_SLEEP_MODE_POWER_COLLAPSE
+	default 2 if MSM7X00A_IDLE_SLEEP_MODE_APPS_SLEEP
+	default 3 if MSM7X00A_IDLE_SLEEP_MODE_RAMP_DOWN_AND_WAIT_FOR_INTERRUPT
+	default 4 if MSM7X00A_IDLE_SLEEP_WAIT_FOR_INTERRUPT
+
+config MSM7X00A_IDLE_SLEEP_MIN_TIME
+	int "Minimum idle time before sleep"
+	default 20000000
+	help
+	  Minimum idle time in nanoseconds before entering low power mode.
+
+config MSM7X00A_IDLE_SPIN_TIME
+	int "Idle spin time before cpu ramp down"
+	default 80000
+	help
+	  Spin time in nanoseconds before ramping down cpu clock and entering
+	  any low power state.
+
+menuconfig MSM_IDLE_STATS
+	bool "Collect idle statistics"
+	default y
+	help
+	  Collect idle statistics and export them in proc/msm_pm_stats.
+
+if MSM_IDLE_STATS
+
+config MSM_IDLE_STATS_FIRST_BUCKET
+	int "First bucket time"
+	default 62500
+	help
+	  Upper time limit in nanosconds of first bucket.
+
+config MSM_IDLE_STATS_BUCKET_SHIFT
+	int "Bucket shift"
+	default 2
+
+config MSM_IDLE_STATS_BUCKET_COUNT
+	int "Bucket count"
+	default 10
+
+endif # MSM_IDLE_STATS
