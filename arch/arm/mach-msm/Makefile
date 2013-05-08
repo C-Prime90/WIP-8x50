@@ -1,7 +1,9 @@
-obj-y += io.o timer.o
+#This Makefile Needs Cleaning
+
+obj-y += timer.o
+obj-y += io.o
 obj-y += clock.o
 obj-y += pmic.o
-obj-y += nand_partitions.o
 obj-y += htc_board_tags.o
 obj-y += drv_callback.o
 
@@ -10,6 +12,7 @@ obj-y += drv_callback.o
 #obj-y += socinfo.o
 #obj-y += memory.o
 #obj-y += gpio.o
+#obj-y += nand_partitions.o
 
 ifeq ($(CPU_V7),)
 obj-y += idle-v7.o
@@ -43,34 +46,40 @@ obj-$(CONFIG_MACH_TROUT) += board-trout.o board-trout-gpio.o board-trout-mmc.o b
 obj-$(CONFIG_MACH_HALIBUT) += board-halibut.o devices-msm7x00.o
 obj-$(CONFIG_ARCH_MSM7X30) += board-msm7x30.o devices-msm7x30.o
 obj-$(CONFIG_ARCH_QSD8X50) += board-qsd8x50.o devices-qsd8x50.o
+obj-$(CONFIG_ARCH_QSD8X50) += devices-qsd8x50.o
 obj-$(CONFIG_ARCH_MSM8X60) += board-msm8x60.o
 obj-$(CONFIG_ARCH_MSM8960) += board-msm8960.o devices-msm8960.o
 
 obj-$(CONFIG_ARCH_MSM7X30) += gpiomux-v1.o gpiomux.o
 obj-$(CONFIG_ARCH_QSD8X50) += gpiomux-8x50.o gpiomux-v1.o gpiomux.o
-obj-$(CONFIG_ARCH_MSM8X60) += gpiomux-8x60.o gpiomux-v2.o gpiomux.o
+obj-$(CONFIG_ARCH_MSM8X60) += gpiomux-8x60.o mgpiomux-v2.o gpiomux.o
 
-obj-$(CONFIG_MACH_BRAVO) += board-bravo.o board-bravo-panel.o
-obj-$(CONFIG_MACH_BRAVO) += board-bravo-keypad.o board-bravo-mmc.o
-obj-$(CONFIG_MACH_BRAVO) += board-bravo-rfkill.o htc_wifi_nvs.o htc_awb_cal.o
-obj-$(CONFIG_MACH_BRAVO) += board-bravo-wifi.o board-bravo-audio.o
-obj-$(CONFIG_MACH_BRAVO) += msm_vibrator.o
-obj-$(CONFIG_MACH_BRAVO) += board-bravo-microp.o
+## This is what it should look like when complete
+#obj-$(CONFIG_MACH_BRAVO) += board-bravo.o board-bravo-panel.o
+#obj-$(CONFIG_MACH_BRAVO) += board-bravo-keypad.o board-bravo-mmc.o
+#obj-$(CONFIG_MACH_BRAVO) += board-bravo-rfkill.o htc_wifi_nvs.o htc_awb_cal.o
+#obj-$(CONFIG_MACH_BRAVO) += board-bravo-wifi.o board-bravo-audio.o
+#obj-$(CONFIG_MACH_BRAVO) += msm_vibrator.o
+#obj-$(CONFIG_MACH_BRAVO) += board-bravo-microp.o
+#obj-$(CONFIG_MACH_BRAVO) += board-bravo-tpa2018d1.o
+#obj-$(CONFIG_MACH_BRAVO) += board-bravo-smb329.o
+
+#obj-$(CONFIG_MACH_BRAVOC) += board-bravo.o board-bravo-panel.o
+#obj-$(CONFIG_MACH_BRAVOC) += board-bravo-keypad.o board-bravo-mmc.o
+#obj-$(CONFIG_MACH_BRAVOC) += board-bravo-rfkill.o htc_wifi_nvs.o htc_awb_cal.o
+#obj-$(CONFIG_MACH_BRAVOC) += board-bravo-wifi.o board-bravo-audio.o
+#obj-$(CONFIG_MACH_BRAVOC) += msm_vibrator.o
+#obj-$(CONFIG_MACH_BRAVOC) += board-bravo-microp.o
+#obj-$(CONFIG_MACH_BRAVOC) += board-bravo-tpa2018d1.o
+#obj-$(CONFIG_MACH_BRAVOC) += board-bravo-smb329.o
+
+## Temporary until all files compile
+obj-$(CONFIG_MACH_BRAVO) += htc_wifi_nvs.o htc_awb_cal.o
 obj-$(CONFIG_MACH_BRAVO) += board-bravo-tpa2018d1.o
 obj-$(CONFIG_MACH_BRAVO) += board-bravo-smb329.o
-
-obj-$(CONFIG_MACH_BRAVOC) += board-bravo.o board-bravo-panel.o
-obj-$(CONFIG_MACH_BRAVOC) += board-bravo-keypad.o board-bravo-mmc.o
-obj-$(CONFIG_MACH_BRAVOC) += board-bravo-rfkill.o htc_wifi_nvs.o htc_awb_cal.o
-obj-$(CONFIG_MACH_BRAVOC) += board-bravo-wifi.o board-bravo-audio.o
-obj-$(CONFIG_MACH_BRAVOC) += msm_vibrator.o
-obj-$(CONFIG_MACH_BRAVOC) += board-bravo-microp.o
-obj-$(CONFIG_MACH_BRAVOC) += board-bravo-tpa2018d1.o
-obj-$(CONFIG_MACH_BRAVOC) += board-bravo-smb329.o
+#
 
 obj-$(CONFIG_HTC_35MM_JACK) += htc_35mm_jack.o
-
-obj-$(CONFIG_HTC_PWRSPLY) += htc_power_supply.o
 
 obj-$(CONFIG_MSM_DAL) += dal.o
 
@@ -80,19 +89,18 @@ obj-$(CONFIG_MSM_ONCRPCROUTER) += smd_rpcrouter_servers.o
 
 obj-$(CONFIG_HTC_ACOUSTIC_QSD) += htc_acoustic_qsd.o
 
-obj-$(CONFIG_MSM_QDSP6) += qdsp6/
-
-obj-$(CONFIG_ARCH_MSM_FLASHLIGHT) += msm_flashlight.o
-
 obj-$(CONFIG_MSM_FIQ_SUPPORT) += fiq_glue.o
-
-obj-$(CONFIG_MSM_CPU_AVS) += avs.o avs_hw.o
 
 obj-$(CONFIG_ARCH_MSM_SCORPION) += arch-init-scorpion.o
 
+# Compiles, but needs work
 obj-$(CONFIG_ARCH_QSD8X50) += acpuclock-qsd8x50.o
-
-obj-$(CONFIG_CPU_FREQ_MSM) += cpufreq.o
+obj-$(CONFIG_MSM_CPU_AVS) += avs.o avs_hw.o
+obj-$(CONFIG_MSM_QDSP6) += qdsp6/
+obj-$(CONFIG_HTC_PWRSPLY) += htc_power_supply.o
 
 # Wont compile yet
 #obj-$(CONFIG_REGULATOR) += footswitch-pcom.o
+#obj-$(CONFIG_CPU_FREQ_MSM) += cpufreq.o
+#obj-$(CONFIG_ARCH_MSM_FLASHLIGHT) += msm_flashlight.o
+
