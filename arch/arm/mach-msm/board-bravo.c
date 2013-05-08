@@ -50,9 +50,6 @@
 #include <mach/bcm_bt_lpm.h>
 #include <mach/msm_smd.h>
 #include <mach/msm_flashlight.h>
-#ifdef CONFIG_PERFLOCK
-#include <mach/perflock.h>
-#endif
 #include <mach/vreg.h>
 #include <mach/board-bravo-microp-common.h>
 #include <mach/socinfo.h>
@@ -199,13 +196,6 @@ static struct android_usb_product usb_products[] = {
 		.num_functions	= ARRAY_SIZE(usb_functions_rndis),
 		.functions	= usb_functions_rndis,
 	},
-	/*
-	XXX: there isn't a equivalent in htc's kernel
-	{
-		.product_id	= 0x4e14,
-		.num_functions	= ARRAY_SIZE(usb_functions_rndis_adb),
-		.functions	= usb_functions_rndis_adb,
-	}, */
 #ifdef CONFIG_USB_ANDROID_ACCESSORY
 	{
 		.vendor_id  = USB_ACCESSORY_VENDOR_ID,
@@ -338,7 +328,6 @@ static struct android_pmem_platform_data mdp_pmem_pdata = {
 	.name		= "pmem",
 	.start		= MSM_PMEM_MDP_BASE,
 	.size		= MSM_PMEM_MDP_SIZE,
-/*	.no_allocator	= 0,*/
 	.allocator_type = PMEM_ALLOCATORTYPE_ALLORNOTHING,
 	.cached		= 1,
 };
@@ -347,7 +336,6 @@ static struct android_pmem_platform_data android_pmem_adsp_pdata = {
 	.name		= "pmem_adsp",
 	.start		= MSM_PMEM_ADSP_BASE,
 	.size		= MSM_PMEM_ADSP_SIZE,
-/*	.no_allocator	= 0,*/
 	.allocator_type = PMEM_ALLOCATORTYPE_BITMAP,
 	.cached		= 1,
 };
@@ -356,7 +344,6 @@ static struct android_pmem_platform_data android_pmem_venc_pdata = {
 	.name		= "pmem_venc",
 	.start		= MSM_PMEM_VENC_BASE,
 	.size		= MSM_PMEM_VENC_SIZE,
-/*	.no_allocator	= 0,*/
 	.allocator_type = PMEM_ALLOCATORTYPE_BITMAP,
 	.cached		= 1,
 };
@@ -657,7 +644,6 @@ static struct msm_camera_sensor_info msm_camera_sensor_s5k3e2fx_data = {
 	.sensor_name 	= "s5k3e2fx",
 	.sensor_reset 	= 144,  /* CAM1_RST */
 	.sensor_pwd 	= 143,  /* CAM1_PWDN, enabled in a9 */
-	/*.vcm_pwd 	= 31,*/ /* CAM1_VCM_EN, enabled in a9 */
 	.pdata 		= &msm_camera_device_data,
 	.resource 	= msm_camera_resources,
 	.num_resources 	= ARRAY_SIZE(msm_camera_resources),
@@ -1157,19 +1143,6 @@ static struct msm_acpu_clock_platform_data bravo_cdma_clock_data = {
 	.mpll_khz		= 235930
 };
 
-#ifdef CONFIG_PERFLOCK
-static unsigned bravo_perf_acpu_table[] = {
-	245000000,
-	576000000,
-	998400000,
-};
-
-static struct perflock_platform_data bravo_perflock_data = {
-	.perf_acpu_table = bravo_perf_acpu_table,
-	.table_size = ARRAY_SIZE(bravo_perf_acpu_table),
-};
-#endif
-
 static void bravo_reset(void)
 {
 	gpio_set_value(BRAVO_GPIO_PS_HOLD, 0);
@@ -1202,10 +1175,6 @@ static void __init bravo_init(void)
 	else
 		msm_acpu_clock_init(&bravo_clock_data);
 
-#ifdef CONFIG_PERFLOCK
-	perflock_init(&bravo_perflock_data);
-#endif
-
 	msm_serial_debug_init(MSM_UART1_PHYS, INT_UART1,
 			      &msm_device_uart1.dev, 1, MSM_GPIO_TO_INT(139));
 
@@ -1223,8 +1192,6 @@ static void __init bravo_init(void)
 	gpio_direction_output(BRAVO_GPIO_TP_LS_EN, 0);
 	gpio_request(BRAVO_GPIO_TP_EN, "tp_en");
 	gpio_direction_output(BRAVO_GPIO_TP_EN, 0);
-//	gpio_request(BRAVO_GPIO_PROXIMITY_EN, "proximity_en");
-//	gpio_direction_output(BRAVO_GPIO_PROXIMITY_EN, 1);
 	gpio_request(BRAVO_GPIO_LS_EN_N, "ls_en");
 	gpio_request(BRAVO_GPIO_COMPASS_RST_N, "compass_rst");
 	gpio_direction_output(BRAVO_GPIO_COMPASS_RST_N, 1);
@@ -1286,7 +1253,7 @@ MACHINE_START(BRAVO, "bravo")
 #else
 MACHINE_START(BRAVOC, "bravoc")
 #endif
-	.boot_params	= 0x20000100,
+	.atag_offset	= 0x20000100,
 	.fixup		= bravo_fixup,
 	.map_io		= bravo_map_io,
 	.init_irq	= msm_init_irq,
