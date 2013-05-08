@@ -11,7 +11,7 @@ obj-y += drv_callback.o
 #obj-y += pm.o
 #obj-y += socinfo.o
 #obj-y += memory.o
-#obj-y += gpio.o
+obj-y += gpio.o
 #obj-y += nand_partitions.o
 
 ifeq ($(CPU_V7),)
