@@ -18,6 +18,7 @@
 #include <linux/regulator/driver.h>
 #include <linux/regulator/machine.h>
 #include <linux/clk.h>
+#include <linux/module.h>
 #include "footswitch.h"
 #include "proc_comm.h"
 
@@ -265,7 +266,7 @@ static int footswitch_probe(struct platform_device *pdev)
 	if (rc)
 		return rc;
 
-	fs->rdev = regulator_register(&fs->desc, &pdev->dev, init_data, fs);
+	fs->rdev = regulator_register(&fs->desc, &pdev->dev, init_data, fs, NULL);
 	if (IS_ERR(fs->rdev)) {
 		pr_err("regulator_register(%s) failed\n", fs->desc.name);
 		rc = PTR_ERR(fs->rdev);

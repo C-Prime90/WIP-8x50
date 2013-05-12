@@ -501,8 +501,8 @@ static int __init msm_init_gpio(void)
 
 	irq_set_chained_handler(INT_GPIO_GROUP1, msm_gpio_irq_handler);
 	irq_set_chained_handler(INT_GPIO_GROUP2, msm_gpio_irq_handler);
-	irq_set_wake(INT_GPIO_GROUP1, 1);
-	irq_set_wake(INT_GPIO_GROUP2, 2);
+	irq_set_irq_wake(INT_GPIO_GROUP1, 1);
+	irq_set_irq_wake(INT_GPIO_GROUP2, 2);
 	return 0;
 }
 

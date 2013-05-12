@@ -6,12 +6,12 @@ obj-y += clock.o
 obj-y += pmic.o
 obj-y += htc_board_tags.o
 obj-y += drv_callback.o
+obj-y += gpio.o
 
 # Wont compile yet
 #obj-y += pm.o
 #obj-y += socinfo.o
 #obj-y += memory.o
-obj-y += gpio.o
 #obj-y += nand_partitions.o
 
 ifeq ($(CPU_V7),)
@@ -81,7 +81,11 @@ obj-$(CONFIG_MACH_BRAVO) += board-bravo-smb329.o
 
 obj-$(CONFIG_HTC_35MM_JACK) += htc_35mm_jack.o
 
+obj-$(CONFIG_ARCH_MSM_FLASHLIGHT) += msm_flashlight.o
+
 obj-$(CONFIG_MSM_DAL) += dal.o
+
+obj-$(CONFIG_REGULATOR) += footswitch-pcom.o
 
 obj-$(CONFIG_MSM_ONCRPCROUTER) += smd_rpcrouter.o
 obj-$(CONFIG_MSM_ONCRPCROUTER) += smd_rpcrouter_device.o
@@ -93,14 +97,14 @@ obj-$(CONFIG_MSM_FIQ_SUPPORT) += fiq_glue.o
 
 obj-$(CONFIG_ARCH_MSM_SCORPION) += arch-init-scorpion.o
 
-# Compiles, but needs work
 obj-$(CONFIG_ARCH_QSD8X50) += acpuclock-qsd8x50.o
+
 obj-$(CONFIG_MSM_CPU_AVS) += avs.o avs_hw.o
+
+# Compiles, but needs work
 obj-$(CONFIG_MSM_QDSP6) += qdsp6/
 obj-$(CONFIG_HTC_PWRSPLY) += htc_power_supply.o
 
 # Wont compile yet
-#obj-$(CONFIG_REGULATOR) += footswitch-pcom.o
 #obj-$(CONFIG_CPU_FREQ_MSM) += cpufreq.o
-#obj-$(CONFIG_ARCH_MSM_FLASHLIGHT) += msm_flashlight.o
 
