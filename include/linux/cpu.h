@@ -170,7 +170,10 @@ static inline void cpu_maps_update_done(void)
 }
 
 #endif /* CONFIG_SMP */
-extern struct bus_type cpu_subsys;
+
+// Left for reference (Remove when done)
+//extern struct bus_type cpu_subsys;
+extern struct sysdev_class cpu_sysdev_class;
 
 #ifdef CONFIG_HOTPLUG_CPU
 /* Stop CPUs going up and down. */
