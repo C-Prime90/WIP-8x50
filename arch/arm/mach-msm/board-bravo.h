@@ -19,6 +19,7 @@
 #define __ARCH_ARM_MACH_MSM_BOARD_BRAVO_H
 
 #include <mach/board.h>
+#include <asm/system_info.h>
 
 #define MSM_SMI_BASE		0x02B00000
 #define MSM_SMI_SIZE		0x01500000
