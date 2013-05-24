@@ -18,6 +18,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/delay.h>
 #include <linux/gpio.h>
+#include <linux/module.h>
 
 #include <mach/irqs.h>
 #include <mach/msm_iomap.h>
