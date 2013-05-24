@@ -7,13 +7,13 @@ obj-y += pmic.o
 obj-y += htc_board_tags.o
 obj-y += drv_callback.o
 obj-y += gpio.o
+obj-y += socinfo.o
 
 # Compiles, but needs work
 obj-y += nand_partitions.o
 
 # Wont compile yet
 #obj-y += pm.o
-#obj-y += socinfo.o
 #obj-y += memory.o
 
 ifeq ($(CPU_V7),)
