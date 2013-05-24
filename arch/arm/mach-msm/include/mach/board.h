@@ -202,6 +202,8 @@ void msm_snddev_hsed_pamp_off(void);
 void msm_snddev_tx_route_config(void);
 void msm_snddev_tx_route_deconfig(void);
 
+extern void config_gpio_table(uint32_t *table, int len);
+
 extern int emmc_partition_read_proc(char *page, char **start, off_t off,
 			   int count, int *eof, void *data);
 
