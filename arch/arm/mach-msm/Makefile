@@ -74,6 +74,7 @@ obj-$(CONFIG_ARCH_MSM8X60) += gpiomux-8x60.o mgpiomux-v2.o gpiomux.o
 #obj-$(CONFIG_MACH_BRAVOC) += board-bravo-smb329.o
 
 ## Temporary until all files compile
+obj-$(CONFIG_MACH_BRAVO) += board-bravo.o
 obj-$(CONFIG_MACH_BRAVO) += board-bravo-rfkill.o htc_wifi_nvs.o htc_awb_cal.o
 obj-$(CONFIG_MACH_BRAVO) += board-bravo-wifi.o board-bravo-audio.o
 obj-$(CONFIG_MACH_BRAVO) += board-bravo-tpa2018d1.o
