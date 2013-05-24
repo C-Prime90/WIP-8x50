@@ -17,8 +17,10 @@
 #include <linux/platform_device.h>
 #include <linux/err.h>
 #include <linux/hrtimer.h>
-#include <../../../drivers/staging/android/timed_output.h>
 #include <linux/sched.h>
+#include <linux/module.h>
+
+#include <../../../drivers/staging/android/timed_output.h>
 
 #include <mach/msm_rpcrouter.h>
 

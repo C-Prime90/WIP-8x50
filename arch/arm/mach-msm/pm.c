@@ -29,6 +29,7 @@
 #include <mach/msm_iomap.h>
 #include <mach/system.h>
 #include <asm/io.h>
+#include <asm/system_misc.h>
 #ifdef CONFIG_VFP
 #include <asm/vfp.h>
 #endif
