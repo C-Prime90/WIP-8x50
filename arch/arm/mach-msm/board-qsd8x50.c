@@ -14,15 +14,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA.
  */
-#include <linux/gpio.h>
+
 #include <linux/kernel.h>
 #include <linux/irq.h>
 #include <linux/gpio.h>
 #include <linux/platform_device.h>
 #include <linux/delay.h>
 #include <linux/usb/msm_hsusb.h>
-#include <linux/err.h>
-#include <linux/clkdev.h>
 
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
@@ -32,8 +30,6 @@
 #include <mach/board.h>
 #include <mach/irqs.h>
 #include <mach/sirc.h>
-#include <mach/vreg.h>
-#include <mach/mmc.h>
 
 #include "devices.h"
 
@@ -98,78 +94,6 @@ static struct platform_device *devices[] __initdata = {
 	&msm_device_hsusb_host,
 };
 
-static struct msm_mmc_gpio sdc1_gpio_cfg[] = {
-	{51, "sdc1_dat_3"},
-	{52, "sdc1_dat_2"},
-	{53, "sdc1_dat_1"},
-	{54, "sdc1_dat_0"},
-	{55, "sdc1_cmd"},
-	{56, "sdc1_clk"}
-};
-
-static struct vreg *vreg_mmc;
-static unsigned long vreg_sts;
-
-static uint32_t msm_sdcc_setup_power(struct device *dv, unsigned int vdd)
-{
-	int rc = 0;
-	struct platform_device *pdev;
-
-	pdev = container_of(dv, struct platform_device, dev);
-
-	if (vdd == 0) {
-		if (!vreg_sts)
-			return 0;
-
-		clear_bit(pdev->id, &vreg_sts);
-
-		if (!vreg_sts) {
-			rc = vreg_disable(vreg_mmc);
-			if (rc)
-				pr_err("vreg_mmc disable failed for slot "
-						"%d: %d\n", pdev->id, rc);
-		}
-		return 0;
-	}
-
-	if (!vreg_sts) {
-		rc = vreg_set_level(vreg_mmc, 2900);
-		if (rc)
-			pr_err("vreg_mmc set level failed for slot %d: %d\n",
-					pdev->id, rc);
-		rc = vreg_enable(vreg_mmc);
-		if (rc)
-			pr_err("vreg_mmc enable failed for slot %d: %d\n",
-					pdev->id, rc);
-	}
-	set_bit(pdev->id, &vreg_sts);
-	return 0;
-}
-
-static struct msm_mmc_gpio_data sdc1_gpio = {
-	.gpio = sdc1_gpio_cfg,
-	.size = ARRAY_SIZE(sdc1_gpio_cfg),
-};
-
-static struct msm_mmc_platform_data qsd8x50_sdc1_data = {
-	.ocr_mask	= MMC_VDD_27_28 | MMC_VDD_28_29,
-	.translate_vdd	= msm_sdcc_setup_power,
-	.gpio_data = &sdc1_gpio,
-};
-
-static void __init qsd8x50_init_mmc(void)
-{
-	vreg_mmc = vreg_get(NULL, "gp5");
-
-	if (IS_ERR(vreg_mmc)) {
-		pr_err("vreg get for vreg_mmc failed (%ld)\n",
-				PTR_ERR(vreg_mmc));
-		return;
-	}
-
-	msm_add_sdcc(1, &qsd8x50_sdc1_data, 0, 0);
-}
-
 static void __init qsd8x50_map_io(void)
 {
 	msm_map_qsd8x50_io();
@@ -188,11 +112,10 @@ static void __init qsd8x50_init(void)
 	msm_device_hsusb.dev.parent = &msm_device_otg.dev;
 	msm_device_hsusb_host.dev.parent = &msm_device_otg.dev;
 	platform_add_devices(devices, ARRAY_SIZE(devices));
-	qsd8x50_init_mmc();
 }
 
 MACHINE_START(QSD8X50_SURF, "QCT QSD8X50 SURF")
-	.atag_offset = 0x100,
+	.atag_offset = PHYS_OFFSET + 0x100,
 	.map_io = qsd8x50_map_io,
 	.init_irq = qsd8x50_init_irq,
 	.init_machine = qsd8x50_init,
@@ -200,7 +123,7 @@ MACHINE_START(QSD8X50_SURF, "QCT QSD8X50 SURF")
 MACHINE_END
 
 MACHINE_START(QSD8X50A_ST1_5, "QCT QSD8X50A ST1.5")
-	.atag_offset = 0x100,
+	.atag_offset = PHYS_OFFSET + 0x100,
 	.map_io = qsd8x50_map_io,
 	.init_irq = qsd8x50_init_irq,
 	.init_machine = qsd8x50_init,
