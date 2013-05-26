@@ -32,24 +32,26 @@
 #include <linux/gpio.h>
 #include <linux/miscdevice.h>
 #include <linux/input.h>
-#include <asm/uaccess.h>
 #include <linux/wakelock.h>
-#include <asm/mach-types.h>
-#include <mach/htc_pwrsink.h>
 #include <linux/earlysuspend.h>
 #include <linux/bma150.h>
 #include <linux/lightsensor.h>
-#include <mach/mmc.h>
-#include <mach/htc_35mm_jack.h>
-//#include <asm/setup.h>
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
 #include <linux/mutex.h>
 #include <linux/jiffies.h>
 #include <linux/slab.h>
 #include <linux/irq.h>
+#include <linux/module.h>
 
+#include <mach/mmc.h>
+#include <mach/htc_pwrsink.h>
+#include <mach/htc_35mm_jack.h>
 #include <mach/board-bravo-microp-common.h>
+
+#include <asm/uaccess.h>
+#include <asm/mach-types.h>
+
 #include "board-bravo.h"
 
 #define READ_GPI_STATE_HPIN	(1<<2)
@@ -1724,7 +1726,7 @@ static int microp_i2c_probe(struct i2c_client *client,
 		dev_err(&client->dev, "request_irq failed\n");
 		goto err_intr;
 	}
-	ret = set_irq_wake(client->irq, 1);
+	ret = irq_set_irq_wake(client->irq, 1);
 	if (ret) {
 		dev_err(&client->dev, "set_irq_wake failed\n");
 		goto err_intr;
@@ -1864,8 +1866,8 @@ static int __init microp_i2c_init(void)
 {
 	int n, MICROP_IRQ_END = FIRST_MICROP_IRQ + NR_MICROP_IRQS;
 	for (n = FIRST_MICROP_IRQ; n < MICROP_IRQ_END; n++) {
-		set_irq_chip(n, &microp_irq_chip);
-		set_irq_handler(n, handle_level_irq);
+		irq_set_chip(n, &microp_irq_chip);
+		irq_set_handler(n, handle_level_irq);
 		set_irq_flags(n, IRQF_VALID);
 	}
 

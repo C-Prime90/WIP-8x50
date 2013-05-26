@@ -279,6 +279,23 @@ static inline irq_hw_number_t irqd_to_hwirq(struct irq_data *d)
  * struct irq_chip - hardware interrupt chip descriptor
  *
  * @name:		name for /proc/interrupts
+ * @startup:		deprecated, replaced by irq_startup
+ * @shutdown:		deprecated, replaced by irq_shutdown
+ * @enable:		deprecated, replaced by irq_enable
+ * @disable:		deprecated, replaced by irq_disable
+ * @ack:		deprecated, replaced by irq_ack
+ * @mask:		deprecated, replaced by irq_mask
+ * @mask_ack:		deprecated, replaced by irq_mask_ack
+ * @unmask:		deprecated, replaced by irq_unmask
+ * @eoi:		deprecated, replaced by irq_eoi
+ * @end:		deprecated, will go away with __do_IRQ()
+ * @set_affinity:	deprecated, replaced by irq_set_affinity
+ * @retrigger:		deprecated, replaced by irq_retrigger
+ * @set_type:		deprecated, replaced by irq_set_type
+ * @set_wake:		deprecated, replaced by irq_wake
+ * @bus_lock:		deprecated, replaced by irq_bus_lock
+ * @bus_sync_unlock:	deprecated, replaced by irq_bus_sync_unlock
+ *
  * @irq_startup:	start up the interrupt (defaults to ->enable if NULL)
  * @irq_shutdown:	shut down the interrupt (defaults to ->disable if NULL)
  * @irq_enable:		enable the interrupt (defaults to chip->unmask if NULL)
@@ -306,6 +323,28 @@ static inline irq_hw_number_t irqd_to_hwirq(struct irq_data *d)
  */
 struct irq_chip {
 	const char	*name;
+#ifndef CONFIG_GENERIC_HARDIRQS_NO_DEPRECATED
+	unsigned int	(*startup)(unsigned int irq);
+	void		(*shutdown)(unsigned int irq);
+	void		(*enable)(unsigned int irq);
+	void		(*disable)(unsigned int irq);
+
+	void		(*ack)(unsigned int irq);
+	void		(*mask)(unsigned int irq);
+	void		(*mask_ack)(unsigned int irq);
+	void		(*unmask)(unsigned int irq);
+	void		(*eoi)(unsigned int irq);
+
+	void		(*end)(unsigned int irq);
+	int		(*set_affinity)(unsigned int irq,
+					const struct cpumask *dest);
+	int		(*retrigger)(unsigned int irq);
+	int		(*set_type)(unsigned int irq, unsigned int flow_type);
+	int		(*set_wake)(unsigned int irq, unsigned int on);
+
+	void		(*bus_lock)(unsigned int irq);
+	void		(*bus_sync_unlock)(unsigned int irq);
+#endif
 	unsigned int	(*irq_startup)(struct irq_data *data);
 	void		(*irq_shutdown)(struct irq_data *data);
 	void		(*irq_enable)(struct irq_data *data);
