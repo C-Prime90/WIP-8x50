@@ -1,14 +1,6 @@
-#This Makefile Needs Cleaning
-
-obj-y += timer.o
-obj-y += io.o
-obj-y += clock.o
-obj-y += pmic.o
-obj-y += htc_board_tags.o
-obj-y += drv_callback.o
-obj-y += gpio.o
-obj-y += socinfo.o
-obj-y += nand_partitions.o
+obj-y += io.o timer.o clock.o socinfo.o
+obj-y += htc_board_tags.o drv_callback.o
+obj-y += pmic.o gpio.o nand_partitions.o
 
 # Wont compile yet
 obj-y += #pm.o
@@ -55,7 +47,6 @@ obj-$(CONFIG_ARCH_MSM7X30) += gpiomux-v1.o gpiomux.o
 obj-$(CONFIG_ARCH_QSD8X50) += gpiomux-8x50.o gpiomux-v1.o gpiomux.o
 obj-$(CONFIG_ARCH_MSM8X60) += gpiomux-8x60.o mgpiomux-v2.o gpiomux.o
 
-## The files commented out do not compile yet
 obj-$(CONFIG_MACH_BRAVO) += board-bravo.o
 obj-$(CONFIG_MACH_BRAVO) += board-bravo-keypad.o board-bravo-mmc.o
 obj-$(CONFIG_MACH_BRAVO) += board-bravo-rfkill.o htc_wifi_nvs.o htc_awb_cal.o
@@ -70,7 +61,7 @@ obj-$(CONFIG_MACH_BRAVOC) += board-bravo-keypad.o board-bravo-mmc.o
 obj-$(CONFIG_MACH_BRAVOC) += board-bravo-rfkill.o htc_wifi_nvs.o htc_awb_cal.o
 obj-$(CONFIG_MACH_BRAVOC) += board-bravo-wifi.o board-bravo-audio.o
 obj-$(CONFIG_MACH_BRAVOC) += msm_vibrator.o
-obj-$(CONFIG_MACH_BRAVOC) += #board-bravo-microp.o
+obj-$(CONFIG_MACH_BRAVOC) += board-bravo-microp.o
 obj-$(CONFIG_MACH_BRAVOC) += board-bravo-tpa2018d1.o
 obj-$(CONFIG_MACH_BRAVOC) += board-bravo-smb329.o
 
