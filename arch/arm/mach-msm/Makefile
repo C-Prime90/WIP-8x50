@@ -1,11 +1,12 @@
 obj-y += io.o timer.o clock.o socinfo.o
 obj-y += htc_board_tags.o drv_callback.o
 obj-y += pmic.o gpio.o nand_partitions.o
+obj-y += display/
 
-# Wont compile yet
+## Wont compile yet
+# YAFFS2 driver
 obj-y += #pm.o
 obj-y += #memory.o
-obj-y += display/
 
 ifeq ($(CPU_V7),)
 obj-y += idle-v7.o
