@@ -291,6 +291,41 @@ int __init msm_add_sdcc(unsigned int controller,
 	return platform_device_register(pdev);
 }
 
+#if defined(CONFIG_ARCH_QSD8X50)
+static struct resource resources_spi[] = {
+	{
+		.start	= MSM_SPI_PHYS,
+		.end	= MSM_SPI_PHYS + MSM_SPI_SIZE - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.start	= INT_SPI_INPUT,
+		.end	= INT_SPI_INPUT,
+		.name	= "irq_in",
+		.flags	= IORESOURCE_IRQ,
+	},
+	{
+		.start	= INT_SPI_OUTPUT,
+		.end	= INT_SPI_OUTPUT,
+		.name	= "irq_out",
+		.flags	= IORESOURCE_IRQ,
+	},
+	{
+		.start	= INT_SPI_ERROR,
+		.end	= INT_SPI_ERROR,
+		.name	= "irq_err",
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+struct platform_device msm_device_spi = {
+	.name		= "msm_spi",
+	.id		= 0,
+	.num_resources	= ARRAY_SIZE(resources_spi),
+	.resource	= resources_spi,
+};
+#endif
+
 struct clk_lookup msm_clocks_8x50[] = {
 	CLK_PCOM("adm_clk",	ADM_CLK,	NULL, 0),
 	CLK_PCOM("ce_clk",	CE_CLK,		NULL, 0),

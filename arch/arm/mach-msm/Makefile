@@ -5,7 +5,7 @@ obj-y += pmic.o gpio.o nand_partitions.o
 # Wont compile yet
 obj-y += #pm.o
 obj-y += #memory.o
-obj-y += #display/
+obj-y += display/
 
 ifeq ($(CPU_V7),)
 obj-y += idle-v7.o
