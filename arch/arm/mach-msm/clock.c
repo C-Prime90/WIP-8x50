@@ -136,6 +136,14 @@ EXPORT_SYMBOL(clk_set_flags);
  */
 static struct clk *ebi1_clk;
 
+void clk_enter_sleep(int from_idle)
+{
+}
+
+void clk_exit_sleep(void)
+{
+}
+
 void __init msm_clock_init(struct clk_lookup *clock_tbl, unsigned num_clocks)
 {
 	unsigned n;

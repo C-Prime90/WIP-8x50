@@ -69,4 +69,7 @@ static inline int __init clock_debug_init(void) { return 0; }
 static inline int __init clock_debug_add(struct clk *clock) { return 0; }
 #endif
 
+void clk_enter_sleep(int from_idle);
+void clk_exit_sleep(void);
+
 #endif
