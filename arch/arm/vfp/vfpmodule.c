@@ -444,8 +444,7 @@ static void vfp_enable(void *unused)
 	set_copro_access(access | CPACC_FULL(10) | CPACC_FULL(11));
 }
 
-#ifdef CONFIG_CPU_PM
-static int vfp_pm_suspend(void)
+int vfp_flush_context(void)
 {
 	struct thread_info *ti = current_thread_info();
 	u32 fpexc = fmrx(FPEXC);
@@ -465,19 +464,32 @@ static int vfp_pm_suspend(void)
 #endif
 	}
 
+
 	/* clear any information we had about last context state */
 	vfp_current_hw_state[ti->cpu] = NULL;
 
 	return 0;
 }
 
-static void vfp_pm_resume(void)
+void vfp_reinit(void)
 {
 	/* ensure we have access to the vfp */
 	vfp_enable(NULL);
 
 	/* and disable it to ensure the next usage restores the state */
 	fmxr(FPEXC, fmrx(FPEXC) & ~FPEXC_EN);
+}
+
+
+#ifdef CONFIG_CPU_PM
+static void vfp_pm_suspend(void)
+{
+	vfp_flush_context();
+}
+
+static void vfp_pm_resume(void)
+{
+	vfp_reinit();
 }
 
 static int vfp_cpu_pm_notifier(struct notifier_block *self, unsigned long cmd,
