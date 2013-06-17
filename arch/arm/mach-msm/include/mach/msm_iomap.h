@@ -37,10 +37,11 @@
  *
  */
 
+#if defined(CONFIG_ARCH_QSD8X50)
+#include "msm_iomap-8x50.h"
+#else
 #if defined(CONFIG_ARCH_MSM7X30)
 #include "msm_iomap-7x30.h"
-#elif defined(CONFIG_ARCH_QSD8X50)
-#include "msm_iomap-8x50.h"
 #elif defined(CONFIG_ARCH_MSM8X60)
 #include "msm_iomap-8x60.h"
 #else
@@ -61,7 +62,7 @@
 #define MSM_DEBUG_UART_PHYS	MSM_UART3_PHYS
 #endif
 
-/* Virtual addresses shared across all MSM targets. */
+/* Virtual addresses shared across all MSM targets except QSD8X50. */
 #define MSM_CSR_BASE		IOMEM(0xE0001000)
 #define MSM_QGIC_DIST_BASE	IOMEM(0xF0000000)
 #define MSM_QGIC_CPU_BASE	IOMEM(0xF0001000)
@@ -70,4 +71,5 @@
 #define MSM_GPIO1_BASE		IOMEM(0xE0003000)
 #define MSM_GPIO2_BASE		IOMEM(0xE0004000)
 
+#endif /* CONFIG_ARCH_QSD8X50 */
 #endif
