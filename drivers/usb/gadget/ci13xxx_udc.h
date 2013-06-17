@@ -33,7 +33,6 @@ struct ci13xxx_td {
 	/* 0 */
 	u32 next;
 #define TD_TERMINATE          BIT(0)
-#define TD_ADDR_MASK          (0xFFFFFFEUL << 5)
 	/* 1 */
 	u32 token;
 #define TD_STATUS             (0x00FFUL <<  0)
@@ -75,8 +74,6 @@ struct ci13xxx_req {
 	struct list_head     queue;
 	struct ci13xxx_td   *ptr;
 	dma_addr_t           dma;
-	struct ci13xxx_td   *zptr;
-	dma_addr_t           zdma;
 };
 
 /* Extension of usb_ep */
@@ -127,16 +124,12 @@ struct ci13xxx {
 	struct ci13xxx_ep          ci13xxx_ep[ENDPT_MAX]; /* extended endpts */
 	u32                        ep0_dir;    /* ep0 direction */
 #define ep0out ci13xxx_ep[0]
-#define ep0in  ci13xxx_ep[hw_ep_max / 2]
-	u8                         remote_wakeup; /* Is remote wakeup feature
-							enabled by the host? */
-	u8                         suspended;  /* suspended by the host */
-	u8                         test_mode;  /* the selected test mode */
+#define ep0in  ci13xxx_ep[16]
 
 	struct usb_gadget_driver  *driver;     /* 3rd party gadget driver */
 	struct ci13xxx_udc_driver *udc_driver; /* device controller driver */
 	int                        vbus_active; /* is VBUS active */
-	struct usb_phy            *transceiver; /* Transceiver struct */
+	struct otg_transceiver    *transceiver; /* Transceiver struct */
 };
 
 /******************************************************************************
@@ -159,7 +152,6 @@ struct ci13xxx {
 #define USBCMD_RS             BIT(0)
 #define USBCMD_RST            BIT(1)
 #define USBCMD_SUTW           BIT(13)
-#define USBCMD_ATDTW          BIT(14)
 
 /* USBSTS & USBINTR */
 #define USBi_UI               BIT(0)
@@ -173,7 +165,6 @@ struct ci13xxx {
 #define DEVICEADDR_USBADR     (0x7FUL << 25)
 
 /* PORTSC */
-#define PORTSC_FPR            BIT(6)
 #define PORTSC_SUSP           BIT(7)
 #define PORTSC_HSP            BIT(9)
 #define PORTSC_PTC            (0x0FUL << 16)

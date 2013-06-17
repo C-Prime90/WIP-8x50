@@ -68,7 +68,6 @@ struct usbnet {
 #		define EVENT_RX_PAUSED	5
 #		define EVENT_DEV_WAKING 6
 #		define EVENT_DEV_ASLEEP 7
-#		define EVENT_DEV_OPEN	8
 };
 
 static inline struct usb_driver *driver_of(struct usb_interface *intf)
@@ -98,14 +97,11 @@ struct driver_info {
 
 #define FLAG_LINK_INTR	0x0800		/* updates link (carrier) status */
 
-#define FLAG_POINTTOPOINT 0x1000	/* possibly use "usb%d" names */
-
 /*
  * Indicates to usbnet, that USB driver accumulates multiple IP packets.
  * Affects statistic (counters) and short packet handling.
  */
-#define FLAG_MULTI_PACKET	0x2000
-#define FLAG_RX_ASSEMBLE	0x4000	/* rx packets may span >1 frames */
+#define FLAG_MULTI_PACKET	0x1000
 
 	/* init device ... can sleep, or cause probe() failure */
 	int	(*bind)(struct usbnet *, struct usb_interface *);
@@ -176,9 +172,7 @@ struct cdc_state {
 };
 
 extern int usbnet_generic_cdc_bind(struct usbnet *, struct usb_interface *);
-extern int usbnet_cdc_bind(struct usbnet *, struct usb_interface *);
 extern void usbnet_cdc_unbind(struct usbnet *, struct usb_interface *);
-extern void usbnet_cdc_status(struct usbnet *, struct urb *);
 
 /* CDC and RNDIS support the same host-chosen packet filters for IN transfers */
 #define	DEFAULT_FILTER	(USB_CDC_PACKET_TYPE_BROADCAST \
@@ -191,8 +185,7 @@ extern void usbnet_cdc_status(struct usbnet *, struct urb *);
 enum skb_state {
 	illegal = 0,
 	tx_start, tx_done,
-	rx_start, rx_done, rx_cleanup,
-	unlink_start
+	rx_start, rx_done, rx_cleanup
 };
 
 struct skb_data {	/* skb->cb is one of these */

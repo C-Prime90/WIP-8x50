@@ -12,9 +12,9 @@
 #include <linux/slab.h>
 #include <linux/kernel.h>
 #include <linux/device.h>
-#include <linux/atomic.h>
+#include <asm/atomic.h>
 
-#include "u_uac1.h"
+#include "u_audio.h"
 
 #define OUT_EP_MAX_PACKET_SIZE	200
 static int req_buf_size = OUT_EP_MAX_PACKET_SIZE;
@@ -177,7 +177,7 @@ static struct uac_format_type_i_discrete_descriptor_1 as_type_i_desc = {
 };
 
 /* Standard ISO OUT Endpoint Descriptor */
-static struct usb_endpoint_descriptor as_out_ep_desc  = {
+static struct usb_endpoint_descriptor as_out_ep_desc __initdata = {
 	.bLength =		USB_DT_ENDPOINT_AUDIO_SIZE,
 	.bDescriptorType =	USB_DT_ENDPOINT,
 	.bEndpointAddress =	USB_DIR_OUT,
@@ -213,6 +213,29 @@ static struct usb_descriptor_header *f_audio_desc[] __initdata = {
 
 	(struct usb_descriptor_header *)&as_out_ep_desc,
 	(struct usb_descriptor_header *)&as_iso_out_desc,
+	NULL,
+};
+
+/* string IDs are assigned dynamically */
+
+#define STRING_MANUFACTURER_IDX		0
+#define STRING_PRODUCT_IDX		1
+
+static char manufacturer[50];
+
+static struct usb_string strings_dev[] = {
+	[STRING_MANUFACTURER_IDX].s = manufacturer,
+	[STRING_PRODUCT_IDX].s = DRIVER_DESC,
+	{  } /* end of list */
+};
+
+static struct usb_gadget_strings stringtab_dev = {
+	.language	= 0x0409,	/* en-us */
+	.strings	= strings_dev,
+};
+
+static struct usb_gadget_strings *audio_strings[] = {
+	&stringtab_dev,
 	NULL,
 };
 
@@ -256,6 +279,7 @@ struct f_audio {
 
 	/* endpoints handle full and/or high speeds */
 	struct usb_ep			*out_ep;
+	struct usb_endpoint_descriptor	*out_desc;
 
 	spinlock_t			lock;
 	struct f_audio_buf *copy_buf;
@@ -437,7 +461,7 @@ static int audio_set_endpoint_req(struct usb_function *f,
 
 	switch (ctrl->bRequest) {
 	case UAC_SET_CUR:
-		value = len;
+		value = 0;
 		break;
 
 	case UAC_SET_MIN:
@@ -476,7 +500,7 @@ static int audio_get_endpoint_req(struct usb_function *f,
 	case UAC_GET_MIN:
 	case UAC_GET_MAX:
 	case UAC_GET_RES:
-		value = len;
+		value = 3;
 		break;
 	case UAC_GET_MEM:
 		break;
@@ -551,7 +575,7 @@ static int f_audio_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 
 	if (intf == 1) {
 		if (alt == 1) {
-			usb_ep_enable(out_ep);
+			usb_ep_enable(out_ep, audio->out_desc);
 			out_ep->driver_data = audio;
 			audio->copy_buf = f_audio_buffer_alloc(audio_buf_size);
 			if (IS_ERR(audio->copy_buf))
@@ -653,23 +677,21 @@ f_audio_bind(struct usb_configuration *c, struct usb_function *f)
 	if (!ep)
 		goto fail;
 	audio->out_ep = ep;
-	audio->out_ep->desc = &as_out_ep_desc;
 	ep->driver_data = cdev;	/* claim */
 
 	status = -ENOMEM;
 
-	/* copy descriptors, and track endpoint copies */
-	f->descriptors = usb_copy_descriptors(f_audio_desc);
-
-	/*
-	 * support all relevant hardware speeds... we expect that when
+	/* supcard all relevant hardware speeds... we expect that when
 	 * hardware is dual speed, all bulk-capable endpoints work at
 	 * both speeds
 	 */
+
+	/* copy descriptors, and track endpoint copies */
 	if (gadget_is_dualspeed(c->cdev->gadget)) {
 		c->highspeed = true;
 		f->hs_descriptors = usb_copy_descriptors(f_audio_desc);
-	}
+	} else
+		f->descriptors = usb_copy_descriptors(f_audio_desc);
 
 	return 0;
 
@@ -684,7 +706,6 @@ f_audio_unbind(struct usb_configuration *c, struct usb_function *f)
 	struct f_audio		*audio = func_to_audio(f);
 
 	usb_free_descriptors(f->descriptors);
-	usb_free_descriptors(f->hs_descriptors);
 	kfree(audio);
 }
 
@@ -721,7 +742,7 @@ int __init control_selector_init(struct f_audio *audio)
 }
 
 /**
- * audio_bind_config - add USB audio function to a configuration
+ * audio_bind_config - add USB audio fucntion to a configuration
  * @c: the configuration to supcard the USB audio function
  * Context: single threaded during gadget setup
  *
@@ -754,6 +775,7 @@ int __init audio_bind_config(struct usb_configuration *c)
 	audio->card.func.set_alt = f_audio_set_alt;
 	audio->card.func.setup = f_audio_setup;
 	audio->card.func.disable = f_audio_disable;
+	audio->out_desc = &as_out_ep_desc;
 
 	control_selector_init(audio);
 
