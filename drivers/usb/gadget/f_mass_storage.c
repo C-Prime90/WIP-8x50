@@ -3196,18 +3196,21 @@ static int fsg_bind_config(struct usb_composite_dev *cdev,
 	return rc;
 }
 
-/* fsg_add has bin deprecated since 2.6.35 
+/* Disabled as of 3.4.39
+ *
+ * fsg_add has bin deprecated since 2.6.35 
  * It was renamed to fsg_bind_config
+ *
  */
 
-/*
+#if 0
 static inline int __deprecated __maybe_unused
 fsg_add(struct usb_composite_dev *cdev, struct usb_configuration *c,
 	struct fsg_common *common)
 {
 	return fsg_bind_config(cdev, c, common);
 }
-*/
+#endif
 
 /************************* Module parameters *************************/
 

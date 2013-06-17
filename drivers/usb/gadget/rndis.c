@@ -159,10 +159,12 @@ static const u32 oid_supported_list[] =
 #endif	/* RNDIS_PM */
 };
 
-/* Disabled as of 3.4.39 (defined elseware)  
+/*
  * HACK: copied from net/core/dev.c to replace dev_get_stats since
- * dev_get_stats cannot be called from atomic context */
-/*static void netdev_stats_to_stats64(struct rtnl_link_stats64 *stats64,
+ * dev_get_stats cannot be called from atomic context
+ */
+
+void netdev_stats_to_stats64(struct rtnl_link_stats64 *stats64,
 				    const struct net_device_stats *netdev_stats)
 {
 #if BITS_PER_LONG == 64
@@ -178,7 +180,7 @@ static const u32 oid_supported_list[] =
 	for (i = 0; i < n; i++)
 		dst[i] = src[i];
 #endif
-}*/
+}
 
 /* NDIS Functions */
 static int gen_ndis_query_resp(int configNr, u32 OID, u8 *buf,
