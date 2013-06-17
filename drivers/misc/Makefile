@@ -52,3 +52,9 @@ obj-$(CONFIG_ALTERA_STAPL)	+=altera-stapl/
 obj-$(CONFIG_MAX8997_MUIC)	+= max8997-muic.o
 obj-$(CONFIG_WL127X_RFKILL)	+= wl127x-rfkill.o
 obj-$(CONFIG_SENSORS_AK8975)	+= akm8975.o
+
+ifdef CONFIG_MICROP_COMMON
+  obj-$(CONFIG_SENSORS_AKM8973)	+= akm8973_htc.o
+else
+  obj-$(CONFIG_SENSORS_AKM8973) += akm8973.o
+endif
