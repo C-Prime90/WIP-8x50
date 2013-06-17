@@ -24,7 +24,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd.h 393288 2013-03-27 01:02:25Z $
+ * $Id: dhd.h 402415 2013-05-15 14:30:44Z $
  */
 
 /****************
@@ -152,6 +152,7 @@ enum dhd_prealloc_index {
 #if defined(STATIC_WL_PRIV_STRUCT)
 	DHD_PREALLOC_WIPHY_ESCAN0 = 5,
 #endif /* STATIC_WL_PRIV_STRUCT */
+	DHD_PREALLOC_DHD_INFO = 7
 };
 
 typedef enum  {
@@ -478,6 +479,9 @@ extern void dhd_free(dhd_pub_t *dhdp);
 /* Indication from bus module to change flow-control state */
 extern void dhd_txflowcontrol(dhd_pub_t *dhdp, int ifidx, bool on);
 
+/* Store the status of a connection attempt for later retrieval by an iovar */
+extern void dhd_store_conn_status(uint32 event, uint32 status, uint32 reason);
+
 extern bool dhd_prec_enq(dhd_pub_t *dhdp, struct pktq *q, void *pkt, int prec);
 
 /* Receive frame for delivery to OS.  Callee disposes of rxp. */
@@ -588,6 +592,7 @@ extern int dhd_wl_ioctl(dhd_pub_t *dhd_pub, int ifindex, wl_ioctl_t *ioc, void *
 extern int dhd_wl_ioctl_cmd(dhd_pub_t *dhd_pub, int cmd, void *arg, int len, uint8 set,
                             int ifindex);
 extern void dhd_common_init(osl_t *osh);
+extern void dhd_common_deinit(dhd_pub_t *dhd_pub, dhd_cmn_t *sa_cmn);
 
 extern int dhd_do_driver_init(struct net_device *net);
 extern int dhd_add_if(struct dhd_info *dhd, int ifidx, void *handle,
@@ -729,6 +734,10 @@ extern uint dhd_force_tx_queueing;
 #define CUSTOM_DPC_PRIO_SETTING 	DEFAULT_DHP_DPC_PRIO
 #endif
 
+#ifndef CUSTOM_LISTEN_INTERVAL
+#define CUSTOM_LISTEN_INTERVAL 		LISTEN_INTERVAL
+#endif /* CUSTOM_LISTEN_INTERVAL */
+
 #define DEFAULT_SUSPEND_BCN_LI_DTIM		3
 #ifndef CUSTOM_SUSPEND_BCN_LI_DTIM
 #define CUSTOM_SUSPEND_BCN_LI_DTIM		DEFAULT_SUSPEND_BCN_LI_DTIM
@@ -736,7 +745,7 @@ extern uint dhd_force_tx_queueing;
 
 #ifdef RXFRAME_THREAD
 #ifndef CUSTOM_RXF_PRIO_SETTING
-#define CUSTOM_RXF_PRIO_SETTING 	(DEFAULT_DHP_DPC_PRIO + 1)
+#define CUSTOM_RXF_PRIO_SETTING		MAX((CUSTOM_DPC_PRIO_SETTING - 1), 1)
 #endif
 #endif /* RXFRAME_THREAD */
 

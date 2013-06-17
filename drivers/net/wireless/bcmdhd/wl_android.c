@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: wl_android.c 393868 2013-03-29 05:24:46Z $
+ * $Id: wl_android.c 399333 2013-04-29 23:26:59Z $
  */
 
 #include <linux/module.h>
@@ -76,7 +76,7 @@
 #define CMD_P2P_SET_NOA		"P2P_SET_NOA"
 #if !defined WL_ENABLE_P2P_IF
 #define CMD_P2P_GET_NOA			"P2P_GET_NOA"
-#endif
+#endif /* WL_ENABLE_P2P_IF */
 #define CMD_P2P_SD_OFFLOAD		"P2P_SD_"
 #define CMD_P2P_SET_PS		"P2P_SET_PS"
 #define CMD_SET_AP_WPS_P2P_IE 		"SET_AP_WPS_P2P_IE"
@@ -168,10 +168,6 @@ extern int dhd_os_check_if_up(void *dhdp);
 #ifdef BCMLXSDMMC
 extern void *bcmsdh_get_drvdata(void);
 #endif /* BCMLXSDMMC */
-#if defined(PROP_TXSTATUS) && !defined(PROP_TXSTATUS_VSDB)
-extern int dhd_wlfc_init(dhd_pub_t *dhd);
-extern void dhd_wlfc_deinit(dhd_pub_t *dhd);
-#endif
 
 
 #ifdef ENABLE_4335BT_WAR
@@ -455,9 +451,6 @@ int wl_android_wifi_on(struct net_device *dev)
 			if (dhd_dev_init_ioctl(dev) < 0)
 				ret = -EFAULT;
 		}
-#if defined(PROP_TXSTATUS) && !defined(PROP_TXSTATUS_VSDB) && defined(BCMLXSDMMC)
-		dhd_wlfc_init(bcmsdh_get_drvdata());
-#endif
 		g_wifi_on = TRUE;
 	}
 
@@ -479,9 +472,6 @@ int wl_android_wifi_off(struct net_device *dev)
 
 	dhd_net_if_lock(dev);
 	if (g_wifi_on) {
-#if defined(PROP_TXSTATUS) && !defined(PROP_TXSTATUS_VSDB) && defined(BCMLXSDMMC)
-		dhd_wlfc_deinit(bcmsdh_get_drvdata());
-#endif
 		ret = dhd_dev_reset(dev, TRUE);
 		sdioh_stop(NULL);
 		dhd_customer_gpio_wlan_ctrl(WLAN_RESET_OFF);
@@ -641,13 +631,18 @@ wl_android_iolist_resume(struct net_device *dev, struct list_head *head)
 {
 	struct io_cfg *config;
 	struct list_head *cur, *q;
+	s32 ret = 0;
 
 	list_for_each_safe(cur, q, head) {
 		config = list_entry(cur, struct io_cfg, list);
 		if (config->iovar) {
-			wldev_iovar_setint(dev, config->iovar, config->param);
+			if (!ret)
+				ret = wldev_iovar_setint(dev, config->iovar,
+					config->param);
 		} else {
-			wldev_ioctl(dev, config->ioctl + 1, config->arg, config->len, true);
+			if (!ret)
+				ret = wldev_ioctl(dev, config->ioctl + 1,
+					config->arg, config->len, true);
 			if (config->ioctl + 1 == WLC_SET_PM)
 				wl_cfg80211_update_power_mode(dev);
 			kfree(config->arg);
@@ -685,6 +680,10 @@ wl_android_set_miracast(struct net_device *dev, char *command, int total_len)
 		ret = wl_android_iolist_add(dev, &miracast_resume_list, &config);
 		if (ret)
 			goto resume;
+		/* FALLTROUGH */
+		/* Source mode shares most configurations with sink mode.
+		 * Fall through here to avoid code duplication
+		 */
 	case MIRACAST_MODE_SINK:
 		/* disable internal roaming */
 		config.iovar = "roam_off";
@@ -1136,6 +1135,7 @@ static int wifi_remove(struct platform_device *pdev)
 {
 	struct wifi_platform_data *wifi_ctrl =
 		(struct wifi_platform_data *)(pdev->dev.platform_data);
+	struct io_cfg *cur, *q;
 
 	DHD_ERROR(("## %s\n", __FUNCTION__));
 	wifi_control_data = wifi_ctrl;
@@ -1144,6 +1144,10 @@ static int wifi_remove(struct platform_device *pdev)
 	wifi_set_power(0, WIFI_TURNOFF_DELAY);	/* Power Off */
 	wifi_set_carddetect(0);	/* CardDetect (1->0) */
 		g_wifi_poweron = FALSE;
+		list_for_each_entry_safe(cur, q, &miracast_resume_list, list) {
+			list_del(&cur->list);
+			kfree(cur);
+		}
 	}
 
 	up(&wifi_control_sem);

@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: wl_cfg80211.h 389705 2013-03-07 20:04:22Z $
+ * $Id: wl_cfg80211.h 401713 2013-05-13 12:11:03Z $
  */
 
 #ifndef _wl_cfg80211_h_
@@ -156,7 +156,7 @@ do {									\
 #define WL_SCAN_JOIN_PASSIVE_DWELL_TIME_MS 	400
 #define WL_AF_TX_MAX_RETRY 	5
 
-#define WL_AF_SEARCH_TIME_MAX           410
+#define WL_AF_SEARCH_TIME_MAX           450
 #define WL_AF_TX_EXTRA_TIME_MAX         200
 
 #define WL_SCAN_TIMER_INTERVAL_MS	8000 /* Scan timeout */
@@ -171,6 +171,8 @@ do {									\
 /* SCAN_SUPPRESS timer values in ms */
 #define WL_SCAN_SUPPRESS_TIMEOUT 31000 /* default Framwork DHCP timeout is 30 sec */
 #define WL_SCAN_SUPPRESS_RETRY 3000
+
+#define WL_PM_ENABLE_TIMEOUT 3000
 
 /* driver status */
 enum wl_status {
@@ -485,6 +487,7 @@ struct wl_priv {
 	struct wireless_dev *wdev;	/* representing wl cfg80211 device */
 
 	struct wireless_dev *p2p_wdev;	/* representing wl cfg80211 device for P2P */
+
 	struct net_device *p2p_net;    /* reference to p2p0 interface */
 
 	struct wl_conf *conf;
@@ -578,6 +581,8 @@ struct wl_priv {
 	struct timer_list scan_supp_timer;
 	struct work_struct wlan_work;
 	struct mutex event_sync;	/* maily for up/down synchronization */
+	bool pm_enable_work_on;
+	struct delayed_work pm_enable_work;
 };
 
 
@@ -768,7 +773,11 @@ wl_get_netinfo_by_netdev(struct wl_priv *wl, struct net_device *ndev)
 }
 #define wl_to_wiphy(w) (w->wdev->wiphy)
 #define wl_to_prmry_ndev(w) (w->wdev->netdev)
+#define wl_to_prmry_wdev(w) (w->wdev)
+#define wl_to_p2p_wdev(w) (w->p2p_wdev)
 #define ndev_to_wl(n) (wdev_to_wl(n->ieee80211_ptr))
+#define ndev_to_wdev(ndev) (ndev->ieee80211_ptr)
+#define wdev_to_ndev(wdev) (wdev->netdev)
 #define wl_to_sr(w) (w->scan_req_int)
 #if defined(STATIC_WL_PRIV_STRUCT)
 #define wl_to_ie(w) (w->ie)
@@ -854,14 +863,12 @@ extern s32 wl_update_wiphybands(struct wl_priv *wl, bool notify);
 extern s32 wl_cfg80211_if_is_group_owner(void);
 extern chanspec_t wl_ch_host_to_driver(u16 channel);
 extern s32 wl_add_remove_eventmsg(struct net_device *ndev, u16 event, bool add);
-extern void wl_stop_wait_next_action_frame(struct wl_priv *wl, struct net_device *ndev);
+extern void wl_stop_wait_next_action_frame(struct wl_priv *wl);
 extern int wl_cfg80211_update_power_mode(struct net_device *dev);
-#if defined(DHCP_SCAN_SUPPRESS)
-extern int wl_cfg80211_scan_suppress(struct net_device *dev, int suppress);
-#endif
 extern void wl_cfg80211_add_to_eventbuffer(wl_eventmsg_buf_t *ev, u16 event, bool set);
 extern s32 wl_cfg80211_apply_eventbuffer(struct net_device *ndev,
 	struct wl_priv *wl, wl_eventmsg_buf_t *ev);
+extern void get_primary_mac(struct wl_priv *wl, struct ether_addr *mac);
 #define SCAN_BUF_CNT	2
 #define SCAN_BUF_NEXT	1
 #define wl_escan_set_sync_id(a, b) ((a) = htod16(0x1234))
