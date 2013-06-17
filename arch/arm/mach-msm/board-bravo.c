@@ -1254,7 +1254,7 @@ MACHINE_START(BRAVO, "bravo")
 #else
 MACHINE_START(BRAVOC, "bravoc")
 #endif
-	.atag_offset	= 0x20000100,
+	.boot_params	= 0x20000100,
 	.fixup		= bravo_fixup,
 	.map_io		= bravo_map_io,
 	.init_irq	= msm_init_irq,
