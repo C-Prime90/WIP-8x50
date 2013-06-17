@@ -884,6 +884,19 @@ static struct machine_desc * __init setup_machine_tags(unsigned int nr)
 		tags = phys_to_virt(__atags_pointer);
 	else if (mdesc->atag_offset)
 		tags = (void *)(PAGE_OFFSET + mdesc->atag_offset);
+	else if (mdesc->boot_params) {
+#ifdef CONFIG_MMU
+	  if (mdesc->boot_params < PHYS_OFFSET ||
+	      mdesc->boot_params >= PHYS_OFFSET + SZ_1M) {
+	    printk(KERN_WARNING
+	           "Default boot params at physical 0x%08lx out of reach\n",
+	           mdesc->boot_params);
+	  } else
+#endif
+	  {
+	    tags = phys_to_virt(mdesc->boot_params);
+	  }
+	}
 
 #if defined(CONFIG_DEPRECATED_PARAM_STRUCT)
 	/*

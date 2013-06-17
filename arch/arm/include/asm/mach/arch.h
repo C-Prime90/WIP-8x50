@@ -16,11 +16,12 @@ struct sys_timer;
 struct pt_regs;
 
 struct machine_desc {
-	unsigned int		nr;		/* architecture number	*/
-	const char		*name;		/* architecture name	*/
+	unsigned int		nr;		/* architecture number */
+	const char		*name;		/* architecture name */
 	unsigned long		atag_offset;	/* tagged list (relative) */
+	unsigned long		boot_params;	/* tagged list (depreciated) */
 	const char *const 	*dt_compat;	/* array of device tree
-						 * 'compatible' strings	*/
+						 * 'compatible' strings */
 
 	unsigned int		nr_irqs;	/* number of IRQs */
 
