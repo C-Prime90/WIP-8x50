@@ -5,6 +5,7 @@
 #define AKM8973_H
 
 #include <linux/ioctl.h>
+#include <linux/module.h>
 
 #define AKM8973_I2C_NAME "akm8973"
 
