@@ -46,36 +46,49 @@ enum android_alarm_type {
  */
 
 /**
- * struct alarm - the basic alarm structure
+ * struct android_alarm - the basic alarm structure
  * @node:	red black tree node for time ordered insertion
  * @type:	alarm type. rtc/elapsed-realtime/systemtime, wakeup/non-wakeup.
  * @softexpires: the absolute earliest expiry time of the alarm.
  * @expires:	the absolute expiry time.
  * @function:	alarm expiry callback function
  *
- * The alarm structure must be initialized by alarm_init()
+ * The alarm structure must be initialized by android_alarm_init()
  *
  */
 
-struct alarm {
+struct android_alarm {
 	struct rb_node 		node;
 	enum android_alarm_type type;
 	ktime_t			softexpires;
 	ktime_t			expires;
-	void			(*function)(struct alarm *);
+	void			(*function)(struct android_alarm *);
 };
 
-void alarm_init(struct alarm *alarm,
-	enum android_alarm_type type, void (*function)(struct alarm *));
-void alarm_start_range(struct alarm *alarm, ktime_t start, ktime_t end);
-int alarm_try_to_cancel(struct alarm *alarm);
-int alarm_cancel(struct alarm *alarm);
+void android_alarm_init(struct android_alarm *alarm,
+	enum android_alarm_type type, void (*function)(struct android_alarm *));
+void android_alarm_start_range(struct android_alarm *alarm, ktime_t start, ktime_t end);
+int android_alarm_try_to_cancel(struct android_alarm *alarm);
+int android_alarm_cancel(struct android_alarm *alarm);
 ktime_t alarm_get_elapsed_realtime(void);
 
 /* set rtc while preserving elapsed realtime */
-int alarm_set_rtc(const struct timespec ts);
+int android_alarm_set_rtc(const struct timespec ts);
 
 #endif
+
+/* Start compatibility for 3.4.39
+ *
+ * -These macros allow androidtimer and android_alarm
+ *  to compile in harmony.
+ */
+#define alarm android_alarm
+#define alarm_init(x, y, z) android_alarm_init(x, y, z)
+#define alarm_start_range(x, y, z) android_alarm_start_range(x, y, z)
+#define alarm_try_to_cancel(x) android_alarm_try_to_cancel(x)
+#define alarm_cancel(x) android_alarm_cancel(x)
+#define alarm_set_rtc(x) android_alarm_set_rtc(x)
+// End compatibility for 3.4.39
 
 enum android_alarm_return_flags {
 	ANDROID_ALARM_RTC_WAKEUP_MASK = 1U << ANDROID_ALARM_RTC_WAKEUP,
