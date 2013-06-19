@@ -26,12 +26,13 @@
 
 enum {
 	WAKE_LOCK_SUSPEND, /* Prevent suspend */
-	WAKE_LOCK_IDLE,
+	WAKE_LOCK_IDLE,    /* Prevent low power idle */
 	WAKE_LOCK_TYPE_COUNT
 };
 
 struct wake_lock {
 	struct wakeup_source ws;
+	const char *name;
 };
 
 static inline void wake_lock_init(struct wake_lock *lock, int type,

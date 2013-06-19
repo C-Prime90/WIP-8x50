@@ -25,6 +25,8 @@ source "drivers/gpu/stub/Kconfig"
 
 source "drivers/gpu/ion/Kconfig"
 
+source "drivers/gpu/msm/Kconfig"
+
 source "drivers/video/msm/Kconfig"
 
 config VGASTATE
