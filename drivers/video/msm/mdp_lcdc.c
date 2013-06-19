@@ -479,9 +479,10 @@ static void lcdc_dma_start(void *priv, uint32_t addr, uint32_t stride,
 			   uint32_t y)
 {
 	struct mdp_lcdc_info *lcdc = priv;
-
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	struct mdp_info *mdp = lcdc->mdp;
 	uint32_t dma2_cfg;
+#endif
 
 #ifdef CONFIG_MSM_MDP31
 	if (lcdc->mdp->dma_config_dirty) {
