@@ -16,9 +16,11 @@
 #include <linux/slab.h>
 #include <linux/dma-mapping.h>
 #include <linux/vmalloc.h>
-#include "kgsl_mmu.h"
 #include <linux/slab.h>
 #include <linux/kmemleak.h>
+#include <mach/memory.h>
+
+#include "kgsl_mmu.h"
 
 struct kgsl_device;
 struct kgsl_process_private;
