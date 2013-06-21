@@ -29,7 +29,7 @@
 
 #define _UNLOCKED 0
 #define _RDLOCK  GENLOCK_RDLOCK
-#define _WRLOCK GENLOCK_WRLOCK
+#define _WRLOCK  GENLOCK_WRLOCK
 
 #define GENLOCK_LOG_ERR(fmt, args...) \
 pr_err("genlock: %s: " fmt, __func__, ##args)
@@ -152,7 +152,7 @@ EXPORT_SYMBOL(genlock_create_lock);
  * Get a file descriptor reference to a lock suitable for sharing with
  * other processes
  */
-
+#ifdef CONFIG_GENLOCK_MISCDEVICE
 static int genlock_get_fd(struct genlock *lock)
 {
 	int ret;
@@ -168,6 +168,7 @@ static int genlock_get_fd(struct genlock *lock)
 	fd_install(ret, lock->file);
 	return ret;
 }
+#endif
 
 /**
  * genlock_attach_lock - Attach an existing lock to a handle
