@@ -589,6 +589,9 @@ arch_initcall(socinfo_init_sysdev);
 
 void *setup_dummy_socinfo(void)
 {
+#ifdef CONFIG_ARCH_QSD8X50
+		dummy_socinfo.id = 30; /* look above: [30] = MSM_CPU_8X50 */
+#else
 	if (machine_is_msm8960_rumi3() || machine_is_msm8960_sim() ||
 	    machine_is_msm8960_cdp())
 		dummy_socinfo.id = 87;
@@ -598,6 +601,7 @@ void *setup_dummy_socinfo(void)
 		dummy_socinfo.id = 104;
 	else if (early_machine_is_copper())
 		dummy_socinfo.id = 126;
+#endif
 	return (void *) &dummy_socinfo;
 }
 
