@@ -78,5 +78,3 @@ struct bma150_platform_data {
 	int microp_new_cmd;
 	int chip_layout;
 };
-
-#endif
