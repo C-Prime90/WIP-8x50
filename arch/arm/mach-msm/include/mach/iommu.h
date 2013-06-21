@@ -108,7 +108,14 @@ struct msm_iommu_ctx_drvdata {
  * Useful for testing and drivers that do not yet fully have IOMMU stuff in
  * their platform devices.
  */
+#ifdef CONFIG_MSM_IOMMU
 struct device *msm_iommu_get_ctx(const char *ctx_name);
+#else
+static inline struct device *msm_iommu_get_ctx(const char *ctx_name)
+{
+	return NULL;
+}
+#endif
 
 /*
  * Interrupt handler for the IOMMU context fault interrupt. Hooking the
