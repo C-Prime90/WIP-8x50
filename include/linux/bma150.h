@@ -20,6 +20,10 @@
 #ifndef _BMA150_H_
 #define _BMA150_H_
 
+#ifdef CONFIG_ARCH_QSD8X50
+#include "bma150_spi.h"
+#else
+
 #define BMA150_DRIVER		"bma150"
 
 struct bma150_cfg {
@@ -43,4 +47,5 @@ struct bma150_platform_data {
 	int (*irq_gpio_cfg)(void);
 };
 
+#endif
 #endif /* _BMA150_H_ */
