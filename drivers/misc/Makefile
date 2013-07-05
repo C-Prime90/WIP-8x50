@@ -48,11 +48,12 @@ obj-$(CONFIG_AB8500_PWM)	+= ab8500-pwm.o
 obj-y				+= lis3lv02d/
 obj-y				+= carma/
 obj-$(CONFIG_WL127X_RFKILL)	+= wl127x-rfkill.o
+obj-$(CONFIG_SENSORS_BMA150_SPI)	+= bma150_spi.o
 obj-$(CONFIG_APANIC)		+= apanic.o
 obj-$(CONFIG_SENSORS_AK8975)	+= akm8975.o
 
 ifndef CONFIG_MICROP_COMMON
-obj-$(CONFIG_SENSORS_AKM8973)  += akm8973.o
+obj-$(CONFIG_SENSORS_AKM8973)	+= akm8973.o
 else
-obj-$(CONFIG_SENSORS_AKM8973) += akm8973_htc.o
+obj-$(CONFIG_SENSORS_AKM8973)	+= akm8973_htc.o
 endif
