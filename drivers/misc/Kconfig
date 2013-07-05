@@ -391,6 +391,12 @@ config HMC6352
 	  This driver provides support for the Honeywell HMC6352 compass,
 	  providing configuration and heading data via sysfs.
 
+config SENSORS_AKM8973
+	tristate "AKM8973 compass support"
+	depends on I2C
+	help
+	  Say Y here to support the AKM8973 orientation sensor.
+
 config SENSORS_AK8975
 	tristate "AK8975 compass support"
 	default n
