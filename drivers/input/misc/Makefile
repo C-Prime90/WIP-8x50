@@ -48,3 +48,10 @@ obj-$(CONFIG_INPUT_WM831X_ON)		+= wm831x-on.o
 obj-$(CONFIG_INPUT_XEN_KBDDEV_FRONTEND)	+= xen-kbdfront.o
 obj-$(CONFIG_INPUT_YEALINK)		+= yealink.o
 
+ifndef CONFIG_MICROP_COMMON
+obj-$(CONFIG_INPUT_CAPELLA_CM3602)	+= capella_cm3602.o
+obj-$(CONFIG_LIGHTSENSOR_MICROP)	+= cm3602_lightsensor_microp.o
+else
+obj-$(CONFIG_INPUT_CAPELLA_CM3602)	+= capella_cm3602_htc.o
+obj-$(CONFIG_LIGHTSENSOR_MICROP)	+= cm3602_lightsensor_microp_htc.o
+endif
