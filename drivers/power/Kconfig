@@ -70,6 +70,7 @@ config BATTERY_DS2760
 
 config BATTERY_DS2780
 	tristate "DS2780 battery driver"
+	depends on !BATTERY_DS2784
 	select W1
 	select W1_SLAVE_DS2780
 	help
@@ -80,6 +81,14 @@ config BATTERY_DS2782
 	depends on I2C
 	help
 	  Say Y here to enable support for the DS2782/DS2786 standalone battery
+	  gas-gauge.
+
+config BATTERY_DS2784
+	tristate "DS2784 standalone gas-gauge"
+	depends on I2C
+	select W1
+	help
+	  Say Y here to enable support for the DS2784 standalone battery
 	  gas-gauge.
 
 config BATTERY_PMU

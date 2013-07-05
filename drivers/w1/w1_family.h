@@ -37,7 +37,11 @@
 #define W1_FAMILY_DS2408	0x29
 #define W1_EEPROM_DS2431	0x2D
 #define W1_FAMILY_DS2760	0x30
+#ifndef CONFIG_BATTERY_DS2784
 #define W1_FAMILY_DS2780	0x32
+#else
+#define W1_FAMILY_DS2784	0x32
+#endif
 
 #define MAXNAMELEN		32
 
