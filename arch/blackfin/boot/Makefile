@@ -6,17 +6,20 @@
 # for more details.
 #
 
+MKIMAGE := $(srctree)/scripts/mkuboot.sh
+
 targets := vmImage vmImage.bin vmImage.bz2 vmImage.gz vmImage.lzma vmImage.lzo vmImage.xip
 extra-y += vmlinux.bin vmlinux.bin.gz vmlinux.bin.bz2 vmlinux.bin.lzma vmlinux.bin.lzo vmlinux.bin.xip
 
-ifeq ($(CONFIG_RAMKERNEL),y)
-UIMAGE_LOADADDR = $(CONFIG_BOOT_LOAD)
-else # CONFIG_ROMKERNEL must be set
-UIMAGE_LOADADDR = $(CONFIG_ROM_BASE)
-endif
-UIMAGE_ENTRYADDR = $(shell $(NM) vmlinux | awk '$$NF == "__start" {print $$1}')
-UIMAGE_NAME = '$(CPU_REV)-$(KERNELRELEASE)'
-UIMAGE_OPTS-$(CONFIG_ROMKERNEL) += -x
+UIMAGE_OPTS-y :=
+UIMAGE_OPTS-$(CONFIG_RAMKERNEL) += -a $(CONFIG_BOOT_LOAD)
+UIMAGE_OPTS-$(CONFIG_ROMKERNEL) += -a $(CONFIG_ROM_BASE) -x
+
+quiet_cmd_uimage = UIMAGE  $@
+      cmd_uimage = $(CONFIG_SHELL) $(MKIMAGE) -A $(ARCH) -O linux -T kernel \
+                   -C $(2) -n '$(CPU_REV)-$(KERNELRELEASE)' \
+                   -e $(shell $(NM) vmlinux | awk '$$NF == "__start" {print $$1}') \
+                   $(UIMAGE_OPTS-y) -d $< $@
 
 $(obj)/vmlinux.bin: vmlinux FORCE
 	$(call if_changed,objcopy)

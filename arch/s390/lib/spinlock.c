@@ -10,7 +10,6 @@
 #include <linux/module.h>
 #include <linux/spinlock.h>
 #include <linux/init.h>
-#include <linux/smp.h>
 #include <asm/io.h>
 
 int spin_retry = 1000;
@@ -24,6 +23,21 @@ static int __init spin_retry_setup(char *str)
 	return 1;
 }
 __setup("spin_retry=", spin_retry_setup);
+
+static inline void _raw_yield(void)
+{
+	if (MACHINE_HAS_DIAG44)
+		asm volatile("diag 0,0,0x44");
+}
+
+static inline void _raw_yield_cpu(int cpu)
+{
+	if (MACHINE_HAS_DIAG9C)
+		asm volatile("diag %0,0,0x9c"
+			     : : "d" (cpu_logical_map(cpu)));
+	else
+		_raw_yield();
+}
 
 void arch_spin_lock_wait(arch_spinlock_t *lp)
 {
@@ -46,7 +60,7 @@ void arch_spin_lock_wait(arch_spinlock_t *lp)
 		}
 		owner = lp->owner_cpu;
 		if (owner)
-			smp_yield_cpu(~owner);
+			_raw_yield_cpu(~owner);
 		if (_raw_compare_and_swap(&lp->owner_cpu, 0, cpu) == 0)
 			return;
 	}
@@ -77,7 +91,7 @@ void arch_spin_lock_wait_flags(arch_spinlock_t *lp, unsigned long flags)
 		}
 		owner = lp->owner_cpu;
 		if (owner)
-			smp_yield_cpu(~owner);
+			_raw_yield_cpu(~owner);
 		local_irq_disable();
 		if (_raw_compare_and_swap(&lp->owner_cpu, 0, cpu) == 0)
 			return;
@@ -107,7 +121,7 @@ void arch_spin_relax(arch_spinlock_t *lock)
 	if (cpu != 0) {
 		if (MACHINE_IS_VM || MACHINE_IS_KVM ||
 		    !smp_vcpu_scheduled(~cpu))
-			smp_yield_cpu(~cpu);
+			_raw_yield_cpu(~cpu);
 	}
 }
 EXPORT_SYMBOL(arch_spin_relax);
@@ -119,7 +133,7 @@ void _raw_read_lock_wait(arch_rwlock_t *rw)
 
 	while (1) {
 		if (count-- <= 0) {
-			smp_yield();
+			_raw_yield();
 			count = spin_retry;
 		}
 		if (!arch_read_can_lock(rw))
@@ -139,7 +153,7 @@ void _raw_read_lock_wait_flags(arch_rwlock_t *rw, unsigned long flags)
 	local_irq_restore(flags);
 	while (1) {
 		if (count-- <= 0) {
-			smp_yield();
+			_raw_yield();
 			count = spin_retry;
 		}
 		if (!arch_read_can_lock(rw))
@@ -174,7 +188,7 @@ void _raw_write_lock_wait(arch_rwlock_t *rw)
 
 	while (1) {
 		if (count-- <= 0) {
-			smp_yield();
+			_raw_yield();
 			count = spin_retry;
 		}
 		if (!arch_write_can_lock(rw))
@@ -192,7 +206,7 @@ void _raw_write_lock_wait_flags(arch_rwlock_t *rw, unsigned long flags)
 	local_irq_restore(flags);
 	while (1) {
 		if (count-- <= 0) {
-			smp_yield();
+			_raw_yield();
 			count = spin_retry;
 		}
 		if (!arch_write_can_lock(rw))

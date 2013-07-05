@@ -66,11 +66,11 @@ static const iomux_cfg_t tx28_fec1_pads[] __initconst = {
 	MX28_PAD_ENET0_CRS__ENET1_RX_EN,
 };
 
-static const struct fec_platform_data tx28_fec0_data __initconst = {
+static struct fec_platform_data tx28_fec0_data = {
 	.phy = PHY_INTERFACE_MODE_RMII,
 };
 
-static const struct fec_platform_data tx28_fec1_data __initconst = {
+static struct fec_platform_data tx28_fec1_data = {
 	.phy = PHY_INTERFACE_MODE_RMII,
 };
 

@@ -28,6 +28,7 @@
 #include <asm/machvec.h>
 #include <asm/page.h>
 #include <asm/ptrace.h>
+#include <asm/system.h>
 #include <asm/sal.h>
 #include <asm/mca.h>
 

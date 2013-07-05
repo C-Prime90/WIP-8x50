@@ -12,7 +12,6 @@
  */
 
 #include <linux/init.h>
-#include <linux/io.h>
 #include <linux/kernel.h>
 #include <asm/mach-types.h>
 #include <plat/clock.h>

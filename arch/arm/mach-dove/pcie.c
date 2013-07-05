@@ -10,7 +10,7 @@
 
 #include <linux/kernel.h>
 #include <linux/pci.h>
-#include <video/vga.h>
+#include <linux/mbus.h>
 #include <asm/mach/pci.h>
 #include <asm/mach/arch.h>
 #include <asm/setup.h>
@@ -18,7 +18,6 @@
 #include <plat/pcie.h>
 #include <mach/irqs.h>
 #include <mach/bridge-regs.h>
-#include <plat/addr-map.h>
 #include "common.h"
 
 struct pcie_port {
@@ -50,7 +49,7 @@ static int __init dove_pcie_setup(int nr, struct pci_sys_data *sys)
 	 */
 	orion_pcie_set_local_bus_nr(pp->base, sys->busnr);
 
-	orion_pcie_setup(pp->base);
+	orion_pcie_setup(pp->base, &dove_mbus_dram_info);
 
 	/*
 	 * IORESOURCE_IO
@@ -69,7 +68,7 @@ static int __init dove_pcie_setup(int nr, struct pci_sys_data *sys)
 	pp->res[0].flags = IORESOURCE_IO;
 	if (request_resource(&ioport_resource, &pp->res[0]))
 		panic("Request PCIe IO resource failed\n");
-	pci_add_resource_offset(&sys->resources, &pp->res[0], sys->io_offset);
+	sys->resource[0] = &pp->res[0];
 
 	/*
 	 * IORESOURCE_MEM
@@ -88,7 +87,9 @@ static int __init dove_pcie_setup(int nr, struct pci_sys_data *sys)
 	pp->res[1].flags = IORESOURCE_MEM;
 	if (request_resource(&iomem_resource, &pp->res[1]))
 		panic("Request PCIe Memory resource failed\n");
-	pci_add_resource_offset(&sys->resources, &pp->res[1], sys->mem_offset);
+	sys->resource[1] = &pp->res[1];
+
+	sys->resource[2] = NULL;
 
 	return 1;
 }
@@ -182,8 +183,7 @@ dove_pcie_scan_bus(int nr, struct pci_sys_data *sys)
 	struct pci_bus *bus;
 
 	if (nr < num_pcie_ports) {
-		bus = pci_scan_root_bus(NULL, sys->busnr, &pcie_ops, sys,
-					&sys->resources);
+		bus = pci_scan_bus(sys->busnr, &pcie_ops, sys);
 	} else {
 		bus = NULL;
 		BUG();
@@ -192,7 +192,7 @@ dove_pcie_scan_bus(int nr, struct pci_sys_data *sys)
 	return bus;
 }
 
-static int __init dove_pcie_map_irq(const struct pci_dev *dev, u8 slot, u8 pin)
+static int __init dove_pcie_map_irq(struct pci_dev *dev, u8 slot, u8 pin)
 {
 	struct pcie_port *pp = bus_to_port(dev->bus->number);
 
@@ -228,8 +228,6 @@ static void __init add_pcie_port(int index, unsigned long base)
 
 void __init dove_pcie_init(int init_port0, int init_port1)
 {
-	vga_base = DOVE_PCIE0_MEM_PHYS_BASE;
-
 	if (init_port0)
 		add_pcie_port(0, DOVE_PCIE0_VIRT_BASE);
 

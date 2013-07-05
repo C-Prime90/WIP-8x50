@@ -35,6 +35,7 @@
 #include <asm/cacheflush.h>
 #include <asm/sstep.h>
 #include <asm/uaccess.h>
+#include <asm/system.h>
 
 #ifdef CONFIG_PPC_ADV_DEBUG_REGS
 #define MSR_SINGLESTEP	(MSR_DE)

@@ -113,8 +113,7 @@
  *		2 of the License, or (at your option) any later version.
  */
 
-#define pr_fmt(fmt) "IPv4: " fmt
-
+#include <asm/system.h>
 #include <linux/module.h>
 #include <linux/types.h>
 #include <linux/kernel.h>
@@ -149,7 +148,7 @@
 /*
  *	Process Router Attention IP option (RFC 2113)
  */
-bool ip_call_ra_chain(struct sk_buff *skb)
+int ip_call_ra_chain(struct sk_buff *skb)
 {
 	struct ip_ra_chain *ra;
 	u8 protocol = ip_hdr(skb)->protocol;
@@ -166,9 +165,9 @@ bool ip_call_ra_chain(struct sk_buff *skb)
 		    (!sk->sk_bound_dev_if ||
 		     sk->sk_bound_dev_if == dev->ifindex) &&
 		    net_eq(sock_net(sk), dev_net(dev))) {
-			if (ip_is_fragment(ip_hdr(skb))) {
+			if (ip_hdr(skb)->frag_off & htons(IP_MF | IP_OFFSET)) {
 				if (ip_defrag(skb, IP_DEFRAG_CALL_RA_CHAIN))
-					return true;
+					return 1;
 			}
 			if (last) {
 				struct sk_buff *skb2 = skb_clone(skb, GFP_ATOMIC);
@@ -181,9 +180,9 @@ bool ip_call_ra_chain(struct sk_buff *skb)
 
 	if (last) {
 		raw_rcv(last, skb);
-		return true;
+		return 1;
 	}
-	return false;
+	return 0;
 }
 
 static int ip_local_deliver_finish(struct sk_buff *skb)
@@ -257,7 +256,7 @@ int ip_local_deliver(struct sk_buff *skb)
 	 *	Reassemble IP fragments.
 	 */
 
-	if (ip_is_fragment(ip_hdr(skb))) {
+	if (ip_hdr(skb)->frag_off & htons(IP_MF | IP_OFFSET)) {
 		if (ip_defrag(skb, IP_DEFRAG_LOCAL_DELIVER))
 			return 0;
 	}
@@ -266,7 +265,7 @@ int ip_local_deliver(struct sk_buff *skb)
 		       ip_local_deliver_finish);
 }
 
-static inline bool ip_rcv_options(struct sk_buff *skb)
+static inline int ip_rcv_options(struct sk_buff *skb)
 {
 	struct ip_options *opt;
 	const struct iphdr *iph;
@@ -300,8 +299,8 @@ static inline bool ip_rcv_options(struct sk_buff *skb)
 			if (!IN_DEV_SOURCE_ROUTE(in_dev)) {
 				if (IN_DEV_LOG_MARTIANS(in_dev) &&
 				    net_ratelimit())
-					pr_info("source route option %pI4 -> %pI4\n",
-						&iph->saddr, &iph->daddr);
+					printk(KERN_INFO "source route option %pI4 -> %pI4\n",
+					       &iph->saddr, &iph->daddr);
 				goto drop;
 			}
 		}
@@ -310,9 +309,9 @@ static inline bool ip_rcv_options(struct sk_buff *skb)
 			goto drop;
 	}
 
-	return false;
+	return 0;
 drop:
-	return true;
+	return -1;
 }
 
 static int ip_rcv_finish(struct sk_buff *skb)

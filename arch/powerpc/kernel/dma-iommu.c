@@ -5,7 +5,6 @@
  * busses using the iommu infrastructure
  */
 
-#include <linux/export.h>
 #include <asm/iommu.h>
 
 /*
@@ -17,8 +16,7 @@
  * to the dma address (mapping) of the first page.
  */
 static void *dma_iommu_alloc_coherent(struct device *dev, size_t size,
-				      dma_addr_t *dma_handle, gfp_t flag,
-				      struct dma_attrs *attrs)
+				      dma_addr_t *dma_handle, gfp_t flag)
 {
 	return iommu_alloc_coherent(dev, get_iommu_table_base(dev), size,
 				    dma_handle, dev->coherent_dma_mask, flag,
@@ -26,8 +24,7 @@ static void *dma_iommu_alloc_coherent(struct device *dev, size_t size,
 }
 
 static void dma_iommu_free_coherent(struct device *dev, size_t size,
-				    void *vaddr, dma_addr_t dma_handle,
-				    struct dma_attrs *attrs)
+				    void *vaddr, dma_addr_t dma_handle)
 {
 	iommu_free_coherent(get_iommu_table_base(dev), size, vaddr, dma_handle);
 }
@@ -93,27 +90,13 @@ static int dma_iommu_dma_supported(struct device *dev, u64 mask)
 		return 1;
 }
 
-static u64 dma_iommu_get_required_mask(struct device *dev)
-{
-	struct iommu_table *tbl = get_iommu_table_base(dev);
-	u64 mask;
-	if (!tbl)
-		return 0;
-
-	mask = 1ULL < (fls_long(tbl->it_offset + tbl->it_size) - 1);
-	mask += mask - 1;
-
-	return mask;
-}
-
 struct dma_map_ops dma_iommu_ops = {
-	.alloc			= dma_iommu_alloc_coherent,
-	.free			= dma_iommu_free_coherent,
-	.map_sg			= dma_iommu_map_sg,
-	.unmap_sg		= dma_iommu_unmap_sg,
-	.dma_supported		= dma_iommu_dma_supported,
-	.map_page		= dma_iommu_map_page,
-	.unmap_page		= dma_iommu_unmap_page,
-	.get_required_mask	= dma_iommu_get_required_mask,
+	.alloc_coherent	= dma_iommu_alloc_coherent,
+	.free_coherent	= dma_iommu_free_coherent,
+	.map_sg		= dma_iommu_map_sg,
+	.unmap_sg	= dma_iommu_unmap_sg,
+	.dma_supported	= dma_iommu_dma_supported,
+	.map_page	= dma_iommu_map_page,
+	.unmap_page	= dma_iommu_unmap_page,
 };
 EXPORT_SYMBOL(dma_iommu_ops);

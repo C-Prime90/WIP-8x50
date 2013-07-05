@@ -151,8 +151,7 @@ extern int ipv6_chk_mcast_addr(struct net_device *dev,
 			       const struct in6_addr *src_addr);
 extern int ipv6_is_mld(struct sk_buff *skb, int nexthdr);
 
-extern void addrconf_prefix_rcv(struct net_device *dev,
-				u8 *opt, int len, bool sllao);
+extern void addrconf_prefix_rcv(struct net_device *dev, u8 *opt, int len);
 
 /*
  *	anycast prototypes (anycast.c)
@@ -160,6 +159,7 @@ extern void addrconf_prefix_rcv(struct net_device *dev,
 extern int ipv6_sock_ac_join(struct sock *sk,int ifindex, const struct in6_addr *addr);
 extern int ipv6_sock_ac_drop(struct sock *sk,int ifindex, const struct in6_addr *addr);
 extern void ipv6_sock_ac_close(struct sock *sk);
+extern int inet6_ac_check(struct sock *sk, const struct in6_addr *addr, int ifindex);
 
 extern int ipv6_dev_ac_inc(struct net_device *dev, const struct in6_addr *addr);
 extern int __ipv6_dev_ac_dec(struct inet6_dev *idev, const struct in6_addr *addr);

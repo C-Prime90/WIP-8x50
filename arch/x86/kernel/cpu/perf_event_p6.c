@@ -1,7 +1,4 @@
-#include <linux/perf_event.h>
-#include <linux/types.h>
-
-#include "perf_event.h"
+#ifdef CONFIG_CPU_SUP_INTEL
 
 /*
  * Not sure about some of these
@@ -87,23 +84,6 @@ static void p6_pmu_enable_event(struct perf_event *event)
 	(void)checking_wrmsrl(hwc->config_base, val);
 }
 
-PMU_FORMAT_ATTR(event,	"config:0-7"	);
-PMU_FORMAT_ATTR(umask,	"config:8-15"	);
-PMU_FORMAT_ATTR(edge,	"config:18"	);
-PMU_FORMAT_ATTR(pc,	"config:19"	);
-PMU_FORMAT_ATTR(inv,	"config:23"	);
-PMU_FORMAT_ATTR(cmask,	"config:24-31"	);
-
-static struct attribute *intel_p6_formats_attr[] = {
-	&format_attr_event.attr,
-	&format_attr_umask.attr,
-	&format_attr_edge.attr,
-	&format_attr_pc.attr,
-	&format_attr_inv.attr,
-	&format_attr_cmask.attr,
-	NULL,
-};
-
 static __initconst const struct x86_pmu p6_pmu = {
 	.name			= "p6",
 	.handle_irq		= x86_pmu_handle_irq,
@@ -132,11 +112,9 @@ static __initconst const struct x86_pmu p6_pmu = {
 	.cntval_mask		= (1ULL << 32) - 1,
 	.get_event_constraints	= x86_get_event_constraints,
 	.event_constraints	= p6_event_constraints,
-
-	.format_attrs		= intel_p6_formats_attr,
 };
 
-__init int p6_pmu_init(void)
+static __init int p6_pmu_init(void)
 {
 	switch (boot_cpu_data.x86_model) {
 	case 1:
@@ -160,3 +138,5 @@ __init int p6_pmu_init(void)
 
 	return 0;
 }
+
+#endif /* CONFIG_CPU_SUP_INTEL */

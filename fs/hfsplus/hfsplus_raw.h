@@ -117,7 +117,7 @@ struct hfsplus_vh {
 	__be32 write_count;
 	__be64 encodings_bmp;
 
-	u32 finder_info[8];
+	u8 finder_info[32];
 
 	struct hfsplus_fork_raw alloc_file;
 	struct hfsplus_fork_raw ext_file;

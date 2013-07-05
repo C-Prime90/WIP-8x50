@@ -31,21 +31,15 @@ char kdb_prompt_str[CMD_BUFLEN];
 
 int kdb_trap_printk;
 
-static int kgdb_transition_check(char *buffer)
+static void kgdb_transition_check(char *buffer)
 {
-	if (buffer[0] != '+' && buffer[0] != '$') {
+	int slen = strlen(buffer);
+	if (strncmp(buffer, "$?#3f", slen) != 0 &&
+	    strncmp(buffer, "$qSupported#37", slen) != 0 &&
+	    strncmp(buffer, "+$qSupported#37", slen) != 0) {
 		KDB_STATE_SET(KGDB_TRANS);
 		kdb_printf("%s", buffer);
-	} else {
-		int slen = strlen(buffer);
-		if (slen > 3 && buffer[slen - 3] == '#') {
-			kdb_gdb_state_pass(buffer);
-			strcpy(buffer, "kgdb");
-			KDB_STATE_SET(DOING_KGDB);
-			return 1;
-		}
 	}
-	return 0;
 }
 
 static int kdb_read_get_key(char *buffer, size_t bufsize)
@@ -216,7 +210,7 @@ static char *kdb_read(char *buffer, size_t bufsize)
 	int i;
 	int diag, dtab_count;
 	int key;
-	static int last_crlf;
+
 
 	diag = kdbgetintenv("DTABCOUNT", &dtab_count);
 	if (diag)
@@ -237,9 +231,6 @@ poll_again:
 		return buffer;
 	if (key != 9)
 		tab = 0;
-	if (key != 10 && key != 13)
-		last_crlf = 0;
-
 	switch (key) {
 	case 8: /* backspace */
 		if (cp > buffer) {
@@ -257,18 +248,9 @@ poll_again:
 			*cp = tmp;
 		}
 		break;
-	case 10: /* new line */
-	case 13: /* carriage return */
-		/* handle \n after \r */
-		if (last_crlf && last_crlf != key)
-			break;
-		last_crlf = key;
+	case 13: /* enter */
 		*lastchar++ = '\n';
 		*lastchar++ = '\0';
-		if (!KDB_STATE(KGDB_TRANS)) {
-			KDB_STATE_SET(KGDB_TRANS);
-			kdb_printf("%s", buffer);
-		}
 		kdb_printf("\n");
 		return buffer;
 	case 4: /* Del */
@@ -400,26 +382,22 @@ poll_again:
 				 * printed characters if we think that
 				 * kgdb is connecting, until the check
 				 * fails */
-				if (!KDB_STATE(KGDB_TRANS)) {
-					if (kgdb_transition_check(buffer))
-						return buffer;
-				} else {
+				if (!KDB_STATE(KGDB_TRANS))
+					kgdb_transition_check(buffer);
+				else
 					kdb_printf("%c", key);
-				}
 			}
 			/* Special escape to kgdb */
 			if (lastchar - buffer >= 5 &&
 			    strcmp(lastchar - 5, "$?#3f") == 0) {
-				kdb_gdb_state_pass(lastchar - 5);
 				strcpy(buffer, "kgdb");
 				KDB_STATE_SET(DOING_KGDB);
 				return buffer;
 			}
-			if (lastchar - buffer >= 11 &&
-			    strcmp(lastchar - 11, "$qSupported") == 0) {
-				kdb_gdb_state_pass(lastchar - 11);
+			if (lastchar - buffer >= 14 &&
+			    strcmp(lastchar - 14, "$qSupported#37") == 0) {
 				strcpy(buffer, "kgdb");
-				KDB_STATE_SET(DOING_KGDB);
+				KDB_STATE_SET(DOING_KGDB2);
 				return buffer;
 			}
 		}
@@ -560,7 +538,6 @@ int vkdb_printf(const char *fmt, va_list ap)
 {
 	int diag;
 	int linecount;
-	int colcount;
 	int logging, saved_loglevel = 0;
 	int saved_trap_printk;
 	int got_printf_lock = 0;
@@ -592,10 +569,6 @@ int vkdb_printf(const char *fmt, va_list ap)
 	diag = kdbgetintenv("LINES", &linecount);
 	if (diag || linecount <= 1)
 		linecount = 24;
-
-	diag = kdbgetintenv("COLUMNS", &colcount);
-	if (diag || colcount <= 1)
-		colcount = 80;
 
 	diag = kdbgetintenv("LOGGING", &logging);
 	if (diag)
@@ -702,8 +675,8 @@ kdb_printit:
 	if (!dbg_kdb_mode && kgdb_connected) {
 		gdbstub_msg_write(kdb_buffer, retlen);
 	} else {
-		if (dbg_io_ops && !dbg_io_ops->is_console) {
-			len = retlen;
+		if (!dbg_io_ops->is_console) {
+			len = strlen(kdb_buffer);
 			cp = kdb_buffer;
 			while (len--) {
 				dbg_io_ops->write_char(*cp);
@@ -722,29 +695,11 @@ kdb_printit:
 		printk(KERN_INFO "%s", kdb_buffer);
 	}
 
-	if (KDB_STATE(PAGER)) {
-		/*
-		 * Check printed string to decide how to bump the
-		 * kdb_nextline to control when the more prompt should
-		 * show up.
-		 */
-		int got = 0;
-		len = retlen;
-		while (len--) {
-			if (kdb_buffer[len] == '\n') {
-				kdb_nextline++;
-				got = 0;
-			} else if (kdb_buffer[len] == '\r') {
-				got = 0;
-			} else {
-				got++;
-			}
-		}
-		kdb_nextline += got / (colcount + 1);
-	}
+	if (KDB_STATE(PAGER) && strchr(kdb_buffer, '\n'))
+		kdb_nextline++;
 
 	/* check for having reached the LINES number of printed lines */
-	if (kdb_nextline >= linecount) {
+	if (kdb_nextline == linecount) {
 		char buf1[16] = "";
 #if defined(CONFIG_SMP)
 		char buf2[32];
@@ -774,7 +729,7 @@ kdb_printit:
 		kdb_input_flush();
 		c = console_drivers;
 
-		if (dbg_io_ops && !dbg_io_ops->is_console) {
+		if (!dbg_io_ops->is_console) {
 			len = strlen(moreprompt);
 			cp = moreprompt;
 			while (len--) {
@@ -807,7 +762,7 @@ kdb_printit:
 			kdb_grepping_flag = 0;
 			kdb_printf("\n");
 		} else if (buf1[0] == ' ') {
-			kdb_printf("\r");
+			kdb_printf("\n");
 			suspend_grep = 1; /* for this recursion */
 		} else if (buf1[0] == '\n') {
 			kdb_nextline = linecount - 1;

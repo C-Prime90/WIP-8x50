@@ -24,7 +24,6 @@
 #include <asm/current.h>
 #include <asm/processor.h>
 #include <asm/machdep.h>
-#include <asm/debug.h>
 
 /*
  * This table contains the mapping between PowerPC hardware trap types, and

@@ -10,6 +10,7 @@
  */
 #include <linux/module.h>
 #include <asm/bitops.h>
+#include <asm/system.h>
 
 /*
  * try flipping a bit using BSET and BCLR

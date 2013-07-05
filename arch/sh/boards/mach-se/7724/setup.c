@@ -23,13 +23,12 @@
 #include <linux/input.h>
 #include <linux/input/sh_keysc.h>
 #include <linux/usb/r8a66597.h>
-#include <linux/sh_eth.h>
-#include <linux/videodev2.h>
 #include <video/sh_mobile_lcdc.h>
 #include <media/sh_mobile_ceu.h>
 #include <sound/sh_fsi.h>
 #include <asm/io.h>
 #include <asm/heartbeat.h>
+#include <asm/sh_eth.h>
 #include <asm/clock.h>
 #include <asm/suspend.h>
 #include <cpu/sh7724.h>
@@ -146,7 +145,7 @@ static struct platform_device nor_flash_device = {
 };
 
 /* LCDC */
-static const struct fb_videomode lcdc_720p_modes[] = {
+const static struct fb_videomode lcdc_720p_modes[] = {
 	{
 		.name		= "LB070WV1",
 		.sync		= 0, /* hsync and vsync are active low */
@@ -161,7 +160,7 @@ static const struct fb_videomode lcdc_720p_modes[] = {
 	},
 };
 
-static const struct fb_videomode lcdc_vga_modes[] = {
+const static struct fb_videomode lcdc_vga_modes[] = {
 	{
 		.name		= "LB070WV1",
 		.sync		= 0, /* hsync and vsync are active low */
@@ -180,11 +179,13 @@ static struct sh_mobile_lcdc_info lcdc_info = {
 	.clock_source = LCDC_CLK_EXTERNAL,
 	.ch[0] = {
 		.chan = LCDC_CHAN_MAINLCD,
-		.fourcc = V4L2_PIX_FMT_RGB565,
+		.bpp = 16,
 		.clock_divider = 1,
-		.panel_cfg = { /* 7.0 inch */
+		.lcd_size_cfg = { /* 7.0 inch */
 			.width = 152,
 			.height = 91,
+		},
+		.board_cfg = {
 		},
 	}
 };
@@ -208,6 +209,9 @@ static struct platform_device lcdc_device = {
 	.resource	= lcdc_resources,
 	.dev		= {
 		.platform_data	= &lcdc_info,
+	},
+	.archdata = {
+		.hwblk_id = HWBLK_LCDC,
 	},
 };
 
@@ -240,6 +244,9 @@ static struct platform_device ceu0_device = {
 	.dev	= {
 		.platform_data	= &sh_mobile_ceu0_info,
 	},
+	.archdata = {
+		.hwblk_id = HWBLK_CEU0,
+	},
 };
 
 /* CEU1 */
@@ -271,14 +278,15 @@ static struct platform_device ceu1_device = {
 	.dev	= {
 		.platform_data	= &sh_mobile_ceu1_info,
 	},
+	.archdata = {
+		.hwblk_id = HWBLK_CEU1,
+	},
 };
 
 /* FSI */
 /* change J20, J21, J22 pin to 1-2 connection to use slave mode */
 static struct sh_fsi_platform_info fsi_info = {
-	.port_a = {
-		.flags = SH_FSI_BRS_INV,
-	},
+	.porta_flags = SH_FSI_BRS_INV,
 };
 
 static struct resource fsi_resources[] = {
@@ -302,22 +310,13 @@ static struct platform_device fsi_device = {
 	.dev	= {
 		.platform_data	= &fsi_info,
 	},
-};
-
-static struct fsi_ak4642_info fsi_ak4642_info = {
-	.name		= "AK4642",
-	.card		= "FSIA-AK4642",
-	.cpu_dai	= "fsia-dai",
-	.codec		= "ak4642-codec.0-0012",
-	.platform	= "sh_fsi.0",
-	.id		= FSI_PORT_A,
+	.archdata = {
+		.hwblk_id = HWBLK_SPU, /* FSI needs SPU hwblk */
+	},
 };
 
 static struct platform_device fsi_ak4642_device = {
-	.name	= "fsi-ak4642-audio",
-	.dev	= {
-		.platform_data	= &fsi_ak4642_info,
-	},
+	.name		= "sh_fsi_a_ak4642",
 };
 
 /* KEYSC in SoC (Needs SW33-2 set to ON) */
@@ -356,6 +355,9 @@ static struct platform_device keysc_device = {
 	.dev	= {
 		.platform_data	= &keysc_info,
 	},
+	.archdata = {
+		.hwblk_id = HWBLK_KEYSC,
+	},
 };
 
 /* SH Eth */
@@ -384,6 +386,9 @@ static struct platform_device sh_eth_device = {
 	},
 	.num_resources = ARRAY_SIZE(sh_eth_resources),
 	.resource = sh_eth_resources,
+	.archdata = {
+		.hwblk_id = HWBLK_ETHER,
+	},
 };
 
 static struct r8a66597_platdata sh7724_usb0_host_data = {
@@ -413,6 +418,9 @@ static struct platform_device sh7724_usb0_host_device = {
 	},
 	.num_resources	= ARRAY_SIZE(sh7724_usb0_host_resources),
 	.resource	= sh7724_usb0_host_resources,
+	.archdata = {
+		.hwblk_id = HWBLK_USB0,
+	},
 };
 
 static struct r8a66597_platdata sh7724_usb1_gadget_data = {
@@ -471,6 +479,9 @@ static struct platform_device sdhi0_cn7_device = {
 	.dev = {
 		.platform_data	= &sh7724_sdhi0_data,
 	},
+	.archdata = {
+		.hwblk_id = HWBLK_SDHI0,
+	},
 };
 
 static struct resource sdhi1_cn8_resources[] = {
@@ -499,6 +510,9 @@ static struct platform_device sdhi1_cn8_device = {
 	.resource       = sdhi1_cn8_resources,
 	.dev = {
 		.platform_data	= &sh7724_sdhi1_data,
+	},
+	.archdata = {
+		.hwblk_id = HWBLK_SDHI1,
 	},
 };
 
@@ -561,6 +575,9 @@ static struct platform_device vou_device = {
 	.resource       = sh_vou_resources,
 	.dev		= {
 		.platform_data	= &sh_vou_pdata,
+	},
+	.archdata	= {
+		.hwblk_id	= HWBLK_VOU,
 	},
 };
 
@@ -888,12 +905,12 @@ static int __init devices_setup(void)
 
 	if (sw & SW41_B) {
 		/* 720p */
-		lcdc_info.ch[0].lcd_modes = lcdc_720p_modes;
-		lcdc_info.ch[0].num_modes = ARRAY_SIZE(lcdc_720p_modes);
+		lcdc_info.ch[0].lcd_cfg	= lcdc_720p_modes;
+		lcdc_info.ch[0].num_cfg	= ARRAY_SIZE(lcdc_720p_modes);
 	} else {
 		/* VGA */
-		lcdc_info.ch[0].lcd_modes = lcdc_vga_modes;
-		lcdc_info.ch[0].num_modes = ARRAY_SIZE(lcdc_vga_modes);
+		lcdc_info.ch[0].lcd_cfg	= lcdc_vga_modes;
+		lcdc_info.ch[0].num_cfg	= ARRAY_SIZE(lcdc_vga_modes);
 	}
 
 	if (sw & SW41_A) {

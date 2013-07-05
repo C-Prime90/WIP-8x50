@@ -16,6 +16,7 @@ asmlinkage long sys_ni_syscall(void)
 	return -ENOSYS;
 }
 
+cond_syscall(sys_nfsservctl);
 cond_syscall(sys_quotactl);
 cond_syscall(sys32_quotactl);
 cond_syscall(sys_acct);
@@ -145,10 +146,6 @@ cond_syscall(sys_io_submit);
 cond_syscall(sys_io_cancel);
 cond_syscall(sys_io_getevents);
 cond_syscall(sys_syslog);
-cond_syscall(sys_process_vm_readv);
-cond_syscall(sys_process_vm_writev);
-cond_syscall(compat_sys_process_vm_readv);
-cond_syscall(compat_sys_process_vm_writev);
 
 /* arch-specific weak syscall entries */
 cond_syscall(sys_pciconfig_read);

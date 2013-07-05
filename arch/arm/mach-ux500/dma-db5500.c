@@ -125,11 +125,10 @@ static struct platform_device dma40_device = {
 	.resource	= dma40_resources
 };
 
-void __init db5500_dma_init(struct device *parent)
+void __init db5500_dma_init(void)
 {
 	int ret;
 
-	dma40_device.dev.parent = parent;
 	ret = platform_device_register(&dma40_device);
 	if (ret)
 		dev_err(&dma40_device.dev, "unable to register device: %d\n", ret);

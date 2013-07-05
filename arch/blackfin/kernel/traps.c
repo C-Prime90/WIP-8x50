@@ -17,7 +17,6 @@
 #include <asm/trace.h>
 #include <asm/fixed_code.h>
 #include <asm/pseudo_instructions.h>
-#include <asm/pda.h>
 
 #ifdef CONFIG_KGDB
 # include <linux/kgdb.h>

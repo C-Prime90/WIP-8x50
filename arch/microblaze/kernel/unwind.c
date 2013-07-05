@@ -24,7 +24,6 @@
 #include <asm/sections.h>
 #include <asm/exceptions.h>
 #include <asm/unwind.h>
-#include <asm/switch_to.h>
 
 struct stack_trace;
 

@@ -17,7 +17,7 @@
 #include <linux/errno.h>
 #include <linux/err.h>
 #include <linux/clk.h>
-#include <linux/device.h>
+#include <linux/sysdev.h>
 #include <linux/io.h>
 
 #include <mach/hardware.h>
@@ -30,8 +30,8 @@
 #include <plat/pll.h>
 #include <plat/s5p-clock.h>
 #include <plat/clock-clksrc.h>
-
-#include "common.h"
+#include <plat/s5p6440.h>
+#include <plat/s5p6450.h>
 
 struct clksrc_clk clk_mout_apll = {
 	.clk	= {
@@ -73,7 +73,7 @@ static const u32 clock_table[][3] = {
 	{L2 * 1000, (3 << ARM_DIV_RATIO_SHIFT), (0 << S5P64X0_CLKDIV0_HCLK_SHIFT)},
 };
 
-static unsigned long s5p64x0_armclk_get_rate(struct clk *clk)
+unsigned long s5p64x0_armclk_get_rate(struct clk *clk)
 {
 	unsigned long rate = clk_get_rate(clk->parent);
 	u32 clkdiv;
@@ -84,8 +84,7 @@ static unsigned long s5p64x0_armclk_get_rate(struct clk *clk)
 	return rate / (clkdiv + 1);
 }
 
-static unsigned long s5p64x0_armclk_round_rate(struct clk *clk,
-					       unsigned long rate)
+unsigned long s5p64x0_armclk_round_rate(struct clk *clk, unsigned long rate)
 {
 	u32 iter;
 
@@ -97,7 +96,7 @@ static unsigned long s5p64x0_armclk_round_rate(struct clk *clk,
 	return clock_table[ARRAY_SIZE(clock_table) - 1][0];
 }
 
-static int s5p64x0_armclk_set_rate(struct clk *clk, unsigned long rate)
+int s5p64x0_armclk_set_rate(struct clk *clk, unsigned long rate)
 {
 	u32 round_tmp;
 	u32 iter;
@@ -149,7 +148,7 @@ static int s5p64x0_armclk_set_rate(struct clk *clk, unsigned long rate)
 	return 0;
 }
 
-static struct clk_ops s5p64x0_clkarm_ops = {
+struct clk_ops s5p64x0_clkarm_ops = {
 	.get_rate	= s5p64x0_armclk_get_rate,
 	.set_rate	= s5p64x0_armclk_set_rate,
 	.round_rate	= s5p64x0_armclk_round_rate,
@@ -174,7 +173,7 @@ struct clksrc_clk clk_dout_mpll = {
 	.reg_div	= { .reg = S5P64X0_CLK_DIV0, .shift = 4, .size = 1 },
 };
 
-static struct clk *clkset_hclk_low_list[] = {
+struct clk *clkset_hclk_low_list[] = {
 	&clk_mout_apll.clk,
 	&clk_mout_mpll.clk,
 };

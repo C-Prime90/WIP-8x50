@@ -26,7 +26,6 @@
 #include <linux/kernel.h>
 #include <linux/errno.h>
 #include <linux/string.h>
-#include <linux/export.h>
 #include <linux/types.h>
 #include <linux/mman.h>
 #include <linux/mm.h>
@@ -51,6 +50,7 @@
 #include <asm/processor.h>
 #include <asm/cputable.h>
 #include <asm/sections.h>
+#include <asm/system.h>
 #include <asm/abs_addr.h>
 #include <asm/firmware.h>
 

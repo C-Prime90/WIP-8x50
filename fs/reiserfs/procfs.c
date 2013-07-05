@@ -12,7 +12,8 @@
 #include <linux/time.h>
 #include <linux/seq_file.h>
 #include <asm/uaccess.h>
-#include "reiserfs.h"
+#include <linux/reiserfs_fs.h>
+#include <linux/reiserfs_fs_sb.h>
 #include <linux/init.h>
 #include <linux/proc_fs.h>
 

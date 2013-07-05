@@ -13,7 +13,6 @@
  * Foundation, 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * Copyright SUSE Linux Products GmbH 2010
- * Copyright 2010-2011 Freescale Semiconductor, Inc.
  *
  * Authors: Alexander Graf <agraf@suse.de>
  */
@@ -65,9 +64,6 @@ kvm_hypercall_start:
 	/* Disable critical section. We are critical if			\
 	   shared->critical == r1 and r2 is always != r1 */		\
 	STL64(r2, KVM_MAGIC_PAGE + KVM_MAGIC_CRITICAL, 0);
-
-.global kvm_template_start
-kvm_template_start:
 
 .global kvm_emulate_mtmsrd
 kvm_emulate_mtmsrd:
@@ -171,9 +167,6 @@ maybe_stay_in_guest:
 kvm_emulate_mtmsr_reg2:
 	ori	r30, r0, 0
 
-	/* Put MSR into magic page because we don't call mtmsr */
-	STL64(r30, KVM_MAGIC_PAGE + KVM_MAGIC_MSR, 0)
-
 	/* Check if we have to fetch an interrupt */
 	lwz	r31, (KVM_MAGIC_PAGE + KVM_MAGIC_INT)(0)
 	cmpwi	r31, 0
@@ -181,9 +174,14 @@ kvm_emulate_mtmsr_reg2:
 
 	/* Check if we may trigger an interrupt */
 	andi.	r31, r30, MSR_EE
-	bne	do_mtmsr
+	beq	no_mtmsr
+
+	b	do_mtmsr
 
 no_mtmsr:
+
+	/* Put MSR into magic page because we don't call mtmsr */
+	STL64(r30, KVM_MAGIC_PAGE + KVM_MAGIC_MSR, 0)
 
 	SCRATCH_RESTORE
 
@@ -212,80 +210,24 @@ kvm_emulate_mtmsr_orig_ins_offs:
 kvm_emulate_mtmsr_len:
 	.long (kvm_emulate_mtmsr_end - kvm_emulate_mtmsr) / 4
 
-/* also used for wrteei 1 */
-.global kvm_emulate_wrtee
-kvm_emulate_wrtee:
 
-	SCRATCH_SAVE
 
-	/* Fetch old MSR in r31 */
-	LL64(r31, KVM_MAGIC_PAGE + KVM_MAGIC_MSR, 0)
+.global kvm_emulate_wrteei
+kvm_emulate_wrteei:
 
-	/* Insert new MSR[EE] */
-kvm_emulate_wrtee_reg:
-	ori	r30, r0, 0
-	rlwimi	r31, r30, 0, MSR_EE
-
-	/*
-	 * If MSR[EE] is now set, check for a pending interrupt.
-	 * We could skip this if MSR[EE] was already on, but that
-	 * should be rare, so don't bother.
-	 */
-	andi.	r30, r30, MSR_EE
-
-	/* Put MSR into magic page because we don't call wrtee */
-	STL64(r31, KVM_MAGIC_PAGE + KVM_MAGIC_MSR, 0)
-
-	beq	no_wrtee
-
-	/* Check if we have to fetch an interrupt */
-	lwz	r30, (KVM_MAGIC_PAGE + KVM_MAGIC_INT)(0)
-	cmpwi	r30, 0
-	bne	do_wrtee
-
-no_wrtee:
-	SCRATCH_RESTORE
-
-	/* Go back to caller */
-kvm_emulate_wrtee_branch:
-	b	.
-
-do_wrtee:
-	SCRATCH_RESTORE
-
-	/* Just fire off the wrtee if it's critical */
-kvm_emulate_wrtee_orig_ins:
-	wrtee	r0
-
-	b	kvm_emulate_wrtee_branch
-
-kvm_emulate_wrtee_end:
-
-.global kvm_emulate_wrtee_branch_offs
-kvm_emulate_wrtee_branch_offs:
-	.long (kvm_emulate_wrtee_branch - kvm_emulate_wrtee) / 4
-
-.global kvm_emulate_wrtee_reg_offs
-kvm_emulate_wrtee_reg_offs:
-	.long (kvm_emulate_wrtee_reg - kvm_emulate_wrtee) / 4
-
-.global kvm_emulate_wrtee_orig_ins_offs
-kvm_emulate_wrtee_orig_ins_offs:
-	.long (kvm_emulate_wrtee_orig_ins - kvm_emulate_wrtee) / 4
-
-.global kvm_emulate_wrtee_len
-kvm_emulate_wrtee_len:
-	.long (kvm_emulate_wrtee_end - kvm_emulate_wrtee) / 4
-
-.global kvm_emulate_wrteei_0
-kvm_emulate_wrteei_0:
 	SCRATCH_SAVE
 
 	/* Fetch old MSR in r31 */
 	LL64(r31, KVM_MAGIC_PAGE + KVM_MAGIC_MSR, 0)
 
 	/* Remove MSR_EE from old MSR */
-	rlwinm	r31, r31, 0, ~MSR_EE
+	li	r30, 0
+	ori	r30, r30, MSR_EE
+	andc	r31, r31, r30
+
+	/* OR new MSR_EE onto the old MSR */
+kvm_emulate_wrteei_ee:
+	ori	r31, r31, 0
 
 	/* Write new MSR value back */
 	STL64(r31, KVM_MAGIC_PAGE + KVM_MAGIC_MSR, 0)
@@ -293,17 +235,22 @@ kvm_emulate_wrteei_0:
 	SCRATCH_RESTORE
 
 	/* Go back to caller */
-kvm_emulate_wrteei_0_branch:
+kvm_emulate_wrteei_branch:
 	b	.
-kvm_emulate_wrteei_0_end:
+kvm_emulate_wrteei_end:
 
-.global kvm_emulate_wrteei_0_branch_offs
-kvm_emulate_wrteei_0_branch_offs:
-	.long (kvm_emulate_wrteei_0_branch - kvm_emulate_wrteei_0) / 4
+.global kvm_emulate_wrteei_branch_offs
+kvm_emulate_wrteei_branch_offs:
+	.long (kvm_emulate_wrteei_branch - kvm_emulate_wrteei) / 4
 
-.global kvm_emulate_wrteei_0_len
-kvm_emulate_wrteei_0_len:
-	.long (kvm_emulate_wrteei_0_end - kvm_emulate_wrteei_0) / 4
+.global kvm_emulate_wrteei_ee_offs
+kvm_emulate_wrteei_ee_offs:
+	.long (kvm_emulate_wrteei_ee - kvm_emulate_wrteei) / 4
+
+.global kvm_emulate_wrteei_len
+kvm_emulate_wrteei_len:
+	.long (kvm_emulate_wrteei_end - kvm_emulate_wrteei) / 4
+
 
 .global kvm_emulate_mtsrin
 kvm_emulate_mtsrin:
@@ -353,6 +300,3 @@ kvm_emulate_mtsrin_orig_ins_offs:
 .global kvm_emulate_mtsrin_len
 kvm_emulate_mtsrin_len:
 	.long (kvm_emulate_mtsrin_end - kvm_emulate_mtsrin) / 4
-
-.global kvm_template_end
-kvm_template_end:

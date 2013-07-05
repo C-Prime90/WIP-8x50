@@ -25,7 +25,6 @@
 
 #include <asm/div64.h>
 
-#include "soc.h"
 
 struct clk {
 	struct clk	*parent;

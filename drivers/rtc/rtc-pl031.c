@@ -369,7 +369,7 @@ static int pl031_probe(struct amba_device *adev, const struct amba_id *id)
 	}
 
 	if (request_irq(adev->irq[0], pl031_interrupt,
-			0, "rtc-pl031", ldata)) {
+			IRQF_DISABLED, "rtc-pl031", ldata)) {
 		ret = -EIO;
 		goto out_no_irq;
 	}
@@ -437,8 +437,6 @@ static struct amba_id pl031_ids[] = {
 	{0, 0},
 };
 
-MODULE_DEVICE_TABLE(amba, pl031_ids);
-
 static struct amba_driver pl031_driver = {
 	.drv = {
 		.name = "rtc-pl031",
@@ -448,7 +446,18 @@ static struct amba_driver pl031_driver = {
 	.remove = pl031_remove,
 };
 
-module_amba_driver(pl031_driver);
+static int __init pl031_init(void)
+{
+	return amba_driver_register(&pl031_driver);
+}
+
+static void __exit pl031_exit(void)
+{
+	amba_driver_unregister(&pl031_driver);
+}
+
+module_init(pl031_init);
+module_exit(pl031_exit);
 
 MODULE_AUTHOR("Deepak Saxena <dsaxena@plexity.net");
 MODULE_DESCRIPTION("ARM AMBA PL031 RTC Driver");

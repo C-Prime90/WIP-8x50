@@ -21,7 +21,6 @@ struct clkops {
 	void (*enable) (struct clk *);
 	void (*disable) (struct clk *);
 	unsigned long (*get_rate) (struct clk *);
-	int (*set_parent)(struct clk *, struct clk *);
 };
 
 /**

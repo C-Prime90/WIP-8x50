@@ -22,6 +22,7 @@
  *  Naturally it's not a 1:1 relation, but there are similarities.
  */
 #include <linux/kernel_stat.h>
+#include <linux/module.h>
 #include <linux/signal.h>
 #include <linux/ioport.h>
 #include <linux/interrupt.h>
@@ -34,8 +35,9 @@
 #include <linux/list.h>
 #include <linux/kallsyms.h>
 #include <linux/proc_fs.h>
+#include <linux/ftrace.h>
 
-#include <asm/exception.h>
+#include <asm/system.h>
 #include <asm/mach/arch.h>
 #include <asm/mach/irq.h>
 #include <asm/mach/time.h>
@@ -57,17 +59,20 @@ int arch_show_interrupts(struct seq_file *p, int prec)
 #ifdef CONFIG_SMP
 	show_ipi_list(p, prec);
 #endif
+#ifdef CONFIG_LOCAL_TIMERS
+	show_local_irqs(p, prec);
+#endif
 	seq_printf(p, "%*s: %10lu\n", prec, "Err", irq_err_count);
 	return 0;
 }
 
 /*
- * handle_IRQ handles all hardware IRQ's.  Decoded IRQs should
- * not come via this function.  Instead, they should provide their
- * own 'handler'.  Used by platform code implementing C-based 1st
- * level decoding.
+ * do_IRQ handles all hardware IRQ's.  Decoded IRQs should not
+ * come via this function.  Instead, they should provide their
+ * own 'handler'
  */
-void handle_IRQ(unsigned int irq, struct pt_regs *regs)
+asmlinkage void __exception_irq_entry
+asm_do_IRQ(unsigned int irq, struct pt_regs *regs)
 {
 	struct pt_regs *old_regs = set_irq_regs(regs);
 
@@ -90,15 +95,6 @@ void handle_IRQ(unsigned int irq, struct pt_regs *regs)
 
 	irq_exit();
 	set_irq_regs(old_regs);
-}
-
-/*
- * asm_do_IRQ is the interface to be used from assembly code.
- */
-asmlinkage void __exception_irq_entry
-asm_do_IRQ(unsigned int irq, struct pt_regs *regs)
-{
-	handle_IRQ(irq, regs);
 }
 
 void set_irq_flags(unsigned int irq, unsigned int iflags)
@@ -135,60 +131,54 @@ int __init arch_probe_nr_irqs(void)
 
 #ifdef CONFIG_HOTPLUG_CPU
 
-static bool migrate_one_irq(struct irq_desc *desc)
+static bool migrate_one_irq(struct irq_data *d)
 {
-	struct irq_data *d = irq_desc_get_irq_data(desc);
-	const struct cpumask *affinity = d->affinity;
-	struct irq_chip *c;
+	unsigned int cpu = cpumask_any_and(d->affinity, cpu_online_mask);
 	bool ret = false;
 
-	/*
-	 * If this is a per-CPU interrupt, or the affinity does not
-	 * include this CPU, then we have nothing to do.
-	 */
-	if (irqd_is_per_cpu(d) || !cpumask_test_cpu(smp_processor_id(), affinity))
-		return false;
-
-	if (cpumask_any_and(affinity, cpu_online_mask) >= nr_cpu_ids) {
-		affinity = cpu_online_mask;
+	if (cpu >= nr_cpu_ids) {
+		cpu = cpumask_any(cpu_online_mask);
 		ret = true;
 	}
 
-	c = irq_data_get_irq_chip(d);
-	if (!c->irq_set_affinity)
-		pr_debug("IRQ%u: unable to set affinity\n", d->irq);
-	else if (c->irq_set_affinity(d, affinity, true) == IRQ_SET_MASK_OK && ret)
-		cpumask_copy(d->affinity, affinity);
+	pr_debug("IRQ%u: moving from cpu%u to cpu%u\n", d->irq, d->node, cpu);
+
+	d->chip->irq_set_affinity(d, cpumask_of(cpu), true);
 
 	return ret;
 }
 
 /*
- * The current CPU has been marked offline.  Migrate IRQs off this CPU.
- * If the affinity settings do not allow other CPUs, force them onto any
+ * The CPU has been marked offline.  Migrate IRQs off this CPU.  If
+ * the affinity settings do not allow other CPUs, force them onto any
  * available CPU.
- *
- * Note: we must iterate over all IRQs, whether they have an attached
- * action structure or not, as we need to get chained interrupts too.
  */
 void migrate_irqs(void)
 {
-	unsigned int i;
+	unsigned int i, cpu = smp_processor_id();
 	struct irq_desc *desc;
 	unsigned long flags;
 
 	local_irq_save(flags);
 
 	for_each_irq_desc(i, desc) {
-		bool affinity_broken;
+		struct irq_data *d = &desc->irq_data;
+		bool affinity_broken = false;
 
 		raw_spin_lock(&desc->lock);
-		affinity_broken = migrate_one_irq(desc);
+		do {
+			if (desc->action == NULL)
+				break;
+
+			if (d->node != cpu)
+				break;
+
+			affinity_broken = migrate_one_irq(d);
+		} while (0);
 		raw_spin_unlock(&desc->lock);
 
 		if (affinity_broken && printk_ratelimit())
-			pr_warning("IRQ%u no longer affine to CPU%u\n", i,
-				smp_processor_id());
+			pr_warning("IRQ%u no longer affine to CPU%u\n", i, cpu);
 	}
 
 	local_irq_restore(flags);

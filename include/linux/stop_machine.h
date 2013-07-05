@@ -3,8 +3,8 @@
 
 #include <linux/cpu.h>
 #include <linux/cpumask.h>
-#include <linux/smp.h>
 #include <linux/list.h>
+#include <asm/system.h>
 
 /*
  * stop_cpu[s]() is simplistic per-cpu maximum priority cpu
@@ -26,6 +26,8 @@ struct cpu_stop_work {
 	void			*arg;
 	struct cpu_stop_done	*done;
 };
+
+extern struct mutex stop_cpus_mutex;
 
 int stop_one_cpu(unsigned int cpu, cpu_stop_fn_t fn, void *arg);
 void stop_one_cpu_nowait(unsigned int cpu, cpu_stop_fn_t fn, void *arg,
@@ -94,7 +96,7 @@ static inline int try_stop_cpus(const struct cpumask *cpumask,
  * stop_machine "Bogolock": stop the entire machine, disable
  * interrupts.  This is a very heavy lock, which is equivalent to
  * grabbing every spinlock (and more).  So the "read" side to such a
- * lock is anything which disables preemption.
+ * lock is anything which disables preeempt.
  */
 #if defined(CONFIG_STOP_MACHINE) && defined(CONFIG_SMP)
 
@@ -124,30 +126,20 @@ int stop_machine(int (*fn)(void *), void *data, const struct cpumask *cpus);
  */
 int __stop_machine(int (*fn)(void *), void *data, const struct cpumask *cpus);
 
-int stop_machine_from_inactive_cpu(int (*fn)(void *), void *data,
-				   const struct cpumask *cpus);
-
 #else	 /* CONFIG_STOP_MACHINE && CONFIG_SMP */
 
 static inline int __stop_machine(int (*fn)(void *), void *data,
 				 const struct cpumask *cpus)
 {
-	unsigned long flags;
 	int ret;
-	local_irq_save(flags);
+	local_irq_disable();
 	ret = fn(data);
-	local_irq_restore(flags);
+	local_irq_enable();
 	return ret;
 }
 
 static inline int stop_machine(int (*fn)(void *), void *data,
 			       const struct cpumask *cpus)
-{
-	return __stop_machine(fn, data, cpus);
-}
-
-static inline int stop_machine_from_inactive_cpu(int (*fn)(void *), void *data,
-						 const struct cpumask *cpus)
 {
 	return __stop_machine(fn, data, cpus);
 }

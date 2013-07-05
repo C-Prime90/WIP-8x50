@@ -13,6 +13,7 @@
 #include <linux/bitops.h>
 
 #include <asm/ptrace.h>
+#include <asm/system.h>
 #include <asm/dma.h>
 #include <asm/irq.h>
 #include <asm/mmu_context.h>
@@ -383,8 +384,7 @@ marvel_init_pci(void)
 
 	marvel_register_error_handlers();
 
-	/* Indicate that we trust the console to configure things properly */
-	pci_set_flags(PCI_PROBE_ONLY);
+	pci_probe_only = 1;
 	common_init_pci();
 	locate_and_init_vga(NULL);
 

@@ -27,6 +27,7 @@
 
 #include <linux/linkage.h>
 #include <asm/assembler.h>
+#include <mach/io.h>
 
 #include <plat/omap24xx.h>
 

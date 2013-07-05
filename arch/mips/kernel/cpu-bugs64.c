@@ -16,7 +16,7 @@
 #include <asm/cpu.h>
 #include <asm/fpu.h>
 #include <asm/mipsregs.h>
-#include <asm/setup.h>
+#include <asm/system.h>
 
 static char bug64hit[] __initdata =
 	"reliable operation impossible!\n%s";

@@ -29,6 +29,7 @@
 #include <linux/gfp.h>
 
 #include <asm/processor.h>
+#include <asm/system.h>
 #include <asm/uaccess.h>
 #include <asm/pgtable.h>
 #include <asm/pgalloc.h>

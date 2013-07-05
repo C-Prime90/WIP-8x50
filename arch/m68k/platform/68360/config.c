@@ -18,6 +18,7 @@
 #include <linux/irq.h>
 
 #include <asm/setup.h>
+#include <asm/system.h>
 #include <asm/pgtable.h>
 #include <asm/machdep.h>
 #include <asm/m68360.h>
@@ -102,6 +103,11 @@ void hw_timer_init(void)
   pquicc->timer_tgcr  = tgcr_save;
 }
 
+void BSP_gettod (int *yearp, int *monp, int *dayp,
+		   int *hourp, int *minp, int *secp)
+{
+}
+
 int BSP_set_clock_mmss(unsigned long nowtime)
 {
 #if 0
@@ -175,5 +181,6 @@ void config_BSP(char *command, int len)
   scc1_hwaddr = "\00\01\02\03\04\05";
 #endif
  
-  mach_reset = BSP_reset;
+  mach_gettod          = BSP_gettod;
+  mach_reset           = BSP_reset;
 }

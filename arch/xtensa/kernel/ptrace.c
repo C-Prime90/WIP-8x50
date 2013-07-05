@@ -24,6 +24,7 @@
 
 #include <asm/pgtable.h>
 #include <asm/page.h>
+#include <asm/system.h>
 #include <asm/uaccess.h>
 #include <asm/ptrace.h>
 #include <asm/elf.h>
@@ -333,7 +334,8 @@ void do_syscall_trace_enter(struct pt_regs *regs)
 		do_syscall_trace();
 
 #if 0
-	audit_syscall_entry(current, AUDIT_ARCH_XTENSA..);
+	if (unlikely(current->audit_context))
+		audit_syscall_entry(current, AUDIT_ARCH_XTENSA..);
 #endif
 }
 

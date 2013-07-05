@@ -13,7 +13,6 @@
 #include <linux/dma-mapping.h>
 #include <linux/list.h>
 #include <linux/pci.h>
-#include <linux/export.h>
 #include <linux/highmem.h>
 #include <linux/scatterlist.h>
 #include <asm/io.h>

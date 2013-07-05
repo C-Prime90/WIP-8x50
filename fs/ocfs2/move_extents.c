@@ -36,6 +36,7 @@
 #include "dir.h"
 #include "buffer_head_io.h"
 #include "sysfile.h"
+#include "suballoc.h"
 #include "refcounttree.h"
 #include "move_extents.h"
 
@@ -745,7 +746,7 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
 	 */
 	ocfs2_probe_alloc_group(inode, gd_bh, &goal_bit, len, move_max_hop,
 				new_phys_cpos);
-	if (!*new_phys_cpos) {
+	if (!new_phys_cpos) {
 		ret = -ENOSPC;
 		goto out_commit;
 	}
@@ -1059,7 +1060,7 @@ int ocfs2_ioctl_move_extents(struct file *filp, void __user *argp)
 	struct ocfs2_move_extents range;
 	struct ocfs2_move_extents_context *context = NULL;
 
-	status = mnt_want_write_file(filp);
+	status = mnt_want_write(filp->f_path.mnt);
 	if (status)
 		return status;
 
@@ -1145,7 +1146,7 @@ out:
 
 	kfree(context);
 
-	mnt_drop_write_file(filp);
+	mnt_drop_write(filp->f_path.mnt);
 
 	return status;
 }

@@ -10,10 +10,9 @@
 #include <linux/dmi.h>
 #include <linux/pfn.h>
 #include <linux/pci.h>
-#include <linux/export.h>
-
-#include <asm/probe_roms.h>
 #include <asm/pci-direct.h>
+
+
 #include <asm/e820.h>
 #include <asm/mmzone.h>
 #include <asm/setup.h>
@@ -235,7 +234,7 @@ void __init probe_roms(void)
 	/* check for extension rom (ignore length byte!) */
 	rom = isa_bus_to_virt(extension_rom_resource.start);
 	if (romsignature(rom)) {
-		length = resource_size(&extension_rom_resource);
+		length = extension_rom_resource.end - extension_rom_resource.start + 1;
 		if (romchecksum(rom, length)) {
 			request_resource(&iomem_resource, &extension_rom_resource);
 			upper = extension_rom_resource.start;

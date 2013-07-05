@@ -30,9 +30,6 @@
 #define KPF_NOPAGE		20
 
 #define KPF_KSM			21
-#define KPF_THP			22
-
-#ifdef __KERNEL__
 
 /* kernel hacking assistances
  * WARNING: subject to change, never rely on them!
@@ -45,7 +42,5 @@
 #define KPF_OWNER_PRIVATE	37
 #define KPF_ARCH		38
 #define KPF_UNCACHED		39
-
-#endif /* __KERNEL__ */
 
 #endif /* LINUX_KERNEL_PAGE_FLAGS_H */

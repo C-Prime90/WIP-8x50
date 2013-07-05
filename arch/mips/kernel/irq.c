@@ -13,6 +13,7 @@
 #include <linux/init.h>
 #include <linux/interrupt.h>
 #include <linux/kernel_stat.h>
+#include <linux/module.h>
 #include <linux/proc_fs.h>
 #include <linux/mm.h>
 #include <linux/random.h>
@@ -22,7 +23,8 @@
 #include <linux/kgdb.h>
 #include <linux/ftrace.h>
 
-#include <linux/atomic.h>
+#include <asm/atomic.h>
+#include <asm/system.h>
 #include <asm/uaccess.h>
 
 #ifdef CONFIG_KGDB

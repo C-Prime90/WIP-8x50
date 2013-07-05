@@ -1,4 +1,4 @@
-#include "reiserfs.h"
+#include <linux/reiserfs_fs.h>
 #include <linux/mutex.h>
 
 /*

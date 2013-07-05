@@ -43,11 +43,14 @@
 #endif
 
 struct alt_instr {
-	s32 instr_offset;	/* original instruction */
-	s32 repl_offset;	/* offset to replacement instruction */
+	u8 *instr;		/* original instruction */
+	u8 *replacement;
 	u16 cpuid;		/* cpuid bit set for replacement */
 	u8  instrlen;		/* length of original instruction */
 	u8  replacementlen;	/* length of new instruction, <= instrlen */
+#ifdef CONFIG_X86_64
+	u32 pad2;
+#endif
 };
 
 extern void alternative_instructions(void);
@@ -80,8 +83,9 @@ static inline int alternatives_text_reserved(void *start, void *end)
 									\
       "661:\n\t" oldinstr "\n662:\n"					\
       ".section .altinstructions,\"a\"\n"				\
-      "	 .long 661b - .\n"			/* label           */	\
-      "	 .long 663f - .\n"			/* new instruction */	\
+      _ASM_ALIGN "\n"							\
+      _ASM_PTR "661b\n"				/* label           */	\
+      _ASM_PTR "663f\n"				/* new instruction */	\
       "	 .word " __stringify(feature) "\n"	/* feature bit     */	\
       "	 .byte 662b-661b\n"			/* sourcelen       */	\
       "	 .byte 664f-663f\n"			/* replacementlen  */	\
@@ -144,12 +148,6 @@ static inline int alternatives_text_reserved(void *start, void *end)
  * in alternative_io
  */
 #define ASM_OUTPUT2(a...) a
-
-/*
- * use this macro if you need clobbers but no inputs in
- * alternative_{input,io,call}()
- */
-#define ASM_NO_INPUT_CLOBBER(clbr...) "i" (0) : clbr
 
 struct paravirt_patch_site;
 #ifdef CONFIG_PARAVIRT

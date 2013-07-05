@@ -387,38 +387,33 @@ EXPORT_SYMBOL(tegra_clk_init_from_table);
 
 void tegra_periph_reset_deassert(struct clk *c)
 {
-	BUG_ON(!c->ops->reset);
-	c->ops->reset(c, false);
+	tegra2_periph_reset_deassert(c);
 }
 EXPORT_SYMBOL(tegra_periph_reset_deassert);
 
 void tegra_periph_reset_assert(struct clk *c)
 {
-	BUG_ON(!c->ops->reset);
-	c->ops->reset(c, true);
+	tegra2_periph_reset_assert(c);
 }
 EXPORT_SYMBOL(tegra_periph_reset_assert);
 
-/* Several extended clock configuration bits (e.g., clock routing, clock
- * phase control) are included in PLL and peripheral clock source
- * registers. */
-int tegra_clk_cfg_ex(struct clk *c, enum tegra_clk_ex_param p, u32 setting)
+void __init tegra_init_clock(void)
 {
-	int ret = 0;
+	tegra2_init_clocks();
+}
+
+/*
+ * The SDMMC controllers have extra bits in the clock source register that
+ * adjust the delay between the clock and data to compenstate for delays
+ * on the PCB.
+ */
+void tegra_sdmmc_tap_delay(struct clk *c, int delay)
+{
 	unsigned long flags;
 
 	spin_lock_irqsave(&c->spinlock, flags);
-
-	if (!c->ops || !c->ops->clk_cfg_ex) {
-		ret = -ENOSYS;
-		goto out;
-	}
-	ret = c->ops->clk_cfg_ex(c, p, setting);
-
-out:
+	tegra2_sdmmc_tap_delay(c, delay);
 	spin_unlock_irqrestore(&c->spinlock, flags);
-
-	return ret;
 }
 
 #ifdef CONFIG_DEBUG_FS
@@ -590,7 +585,7 @@ static const struct file_operations possible_parents_fops = {
 
 static int clk_debugfs_register_one(struct clk *c)
 {
-	struct dentry *d;
+	struct dentry *d, *child, *child_tmp;
 
 	d = debugfs_create_dir(c->name, clk_debugfs_root);
 	if (!d)
@@ -619,7 +614,10 @@ static int clk_debugfs_register_one(struct clk *c)
 	return 0;
 
 err_out:
-	debugfs_remove_recursive(c->dent);
+	d = c->dent;
+	list_for_each_entry_safe(child, child_tmp, &d->d_subdirs, d_u.d_child)
+		debugfs_remove(child);
+	debugfs_remove(c->dent);
 	return -ENOMEM;
 }
 

@@ -68,6 +68,11 @@ asmlinkage irqreturn_t inthandler5(void);
 asmlinkage irqreturn_t inthandler6(void);
 asmlinkage irqreturn_t inthandler7(void);
 
+extern e_vector *_ramvec;
+
+/* The number of spurious interrupts */
+volatile unsigned int num_spurious;
+
 /* The 68k family did not have a good way to determine the source
  * of interrupts until later in the family.  The EC000 core does
  * not provide the vector number on the stack, we vector everything
@@ -150,7 +155,7 @@ static struct irq_chip intc_irq_chip = {
  * This function should be called during kernel startup to initialize
  * the machine vector table.
  */
-void __init trap_init(void)
+void __init init_IRQ(void)
 {
 	int i;
 
@@ -167,11 +172,6 @@ void __init trap_init(void)
 	_ramvec[69] = (e_vector) inthandler5;
 	_ramvec[70] = (e_vector) inthandler6;
 	_ramvec[71] = (e_vector) inthandler7;
-}
-
-void __init init_IRQ(void)
-{
-	int i;
 
 	IVR = 0x40; /* Set DragonBall IVR (interrupt base) to 64 */
 

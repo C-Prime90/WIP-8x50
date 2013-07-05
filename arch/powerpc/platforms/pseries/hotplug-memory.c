@@ -205,21 +205,27 @@ static int pseries_drconf_memory(unsigned long *base, unsigned int action)
 static int pseries_memory_notifier(struct notifier_block *nb,
 				unsigned long action, void *node)
 {
-	int err = 0;
+	int err = NOTIFY_OK;
 
 	switch (action) {
 	case PSERIES_RECONFIG_ADD:
-		err = pseries_add_memory(node);
+		if (pseries_add_memory(node))
+			err = NOTIFY_BAD;
 		break;
 	case PSERIES_RECONFIG_REMOVE:
-		err = pseries_remove_memory(node);
+		if (pseries_remove_memory(node))
+			err = NOTIFY_BAD;
 		break;
 	case PSERIES_DRCONF_MEM_ADD:
 	case PSERIES_DRCONF_MEM_REMOVE:
-		err = pseries_drconf_memory(node, action);
+		if (pseries_drconf_memory(node, action))
+			err = NOTIFY_BAD;
+		break;
+	default:
+		err = NOTIFY_DONE;
 		break;
 	}
-	return notifier_from_errno(err);
+	return err;
 }
 
 static struct notifier_block pseries_mem_nb = {

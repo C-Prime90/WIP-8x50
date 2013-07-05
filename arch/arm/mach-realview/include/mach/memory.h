@@ -29,6 +29,10 @@
 #define PLAT_PHYS_OFFSET		UL(0x00000000)
 #endif
 
+#ifdef CONFIG_ZONE_DMA
+#define ARM_DMA_ZONE_SIZE	SZ_256M
+#endif
+
 #ifdef CONFIG_SPARSEMEM
 
 /*

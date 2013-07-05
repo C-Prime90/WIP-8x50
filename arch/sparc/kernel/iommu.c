@@ -5,7 +5,7 @@
  */
 
 #include <linux/kernel.h>
-#include <linux/export.h>
+#include <linux/module.h>
 #include <linux/slab.h>
 #include <linux/delay.h>
 #include <linux/device.h>
@@ -280,8 +280,7 @@ static inline void iommu_free_ctx(struct iommu *iommu, int ctx)
 }
 
 static void *dma_4u_alloc_coherent(struct device *dev, size_t size,
-				   dma_addr_t *dma_addrp, gfp_t gfp,
-				   struct dma_attrs *attrs)
+				   dma_addr_t *dma_addrp, gfp_t gfp)
 {
 	unsigned long flags, order, first_page;
 	struct iommu *iommu;
@@ -331,8 +330,7 @@ static void *dma_4u_alloc_coherent(struct device *dev, size_t size,
 }
 
 static void dma_4u_free_coherent(struct device *dev, size_t size,
-				 void *cpu, dma_addr_t dvma,
-				 struct dma_attrs *attrs)
+				 void *cpu, dma_addr_t dvma)
 {
 	struct iommu *iommu;
 	unsigned long flags, order, npages;
@@ -827,8 +825,8 @@ static void dma_4u_sync_sg_for_cpu(struct device *dev,
 }
 
 static struct dma_map_ops sun4u_dma_ops = {
-	.alloc			= dma_4u_alloc_coherent,
-	.free			= dma_4u_free_coherent,
+	.alloc_coherent		= dma_4u_alloc_coherent,
+	.free_coherent		= dma_4u_free_coherent,
 	.map_page		= dma_4u_map_page,
 	.unmap_page		= dma_4u_unmap_page,
 	.map_sg			= dma_4u_map_sg,

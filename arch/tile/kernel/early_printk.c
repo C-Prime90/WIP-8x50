@@ -16,7 +16,6 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/string.h>
-#include <linux/irqflags.h>
 #include <asm/setup.h>
 #include <hv/hypervisor.h>
 

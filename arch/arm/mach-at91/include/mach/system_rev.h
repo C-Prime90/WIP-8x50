@@ -7,8 +7,6 @@
 #ifndef __ARCH_SYSTEM_REV_H__
 #define __ARCH_SYSTEM_REV_H__
 
-#include <asm/system_info.h>
-
 /*
  * board revision encoding
  * mach specific
@@ -21,7 +19,7 @@
 #define BOARD_HAVE_NAND_16BIT	(1 << 31)
 static inline int board_have_nand_16bit(void)
 {
-	return (system_rev & BOARD_HAVE_NAND_16BIT) ? 1 : 0;
+	return system_rev & BOARD_HAVE_NAND_16BIT;
 }
 
 #endif /* __ARCH_SYSTEM_REV_H__ */

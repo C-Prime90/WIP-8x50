@@ -2,7 +2,6 @@
 #include <asm/thread_info.h>
 #include <asm/cache.h>
 #include <asm/page.h>
-#include <asm/setup.h>
 
 OUTPUT_FORMAT("elf64-alpha")
 OUTPUT_ARCH(alpha)
@@ -26,7 +25,6 @@ SECTIONS
 		*(.fixup)
 		*(.gnu.warning)
 	} :kernel
-	swapper_pg_dir = SWAPPER_PGD;
 	_etext = .;	/* End of text section */
 
 	NOTES :kernel :note

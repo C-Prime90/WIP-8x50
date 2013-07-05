@@ -266,11 +266,12 @@ int dlpar_attach_node(struct device_node *dn)
 	if (!dn->parent)
 		return -ENOMEM;
 
-	rc = pSeries_reconfig_notify(PSERIES_RECONFIG_ADD, dn);
-	if (rc) {
+	rc = blocking_notifier_call_chain(&pSeries_reconfig_chain,
+					  PSERIES_RECONFIG_ADD, dn);
+	if (rc == NOTIFY_BAD) {
 		printk(KERN_ERR "Failed to add device node %s\n",
 		       dn->full_name);
-		return rc;
+		return -ENOMEM; /* For now, safe to assume kmalloc failure */
 	}
 
 	of_attach_node(dn);
@@ -300,7 +301,8 @@ int dlpar_detach_node(struct device_node *dn)
 		remove_proc_entry(dn->pde->name, parent->pde);
 #endif
 
-	pSeries_reconfig_notify(PSERIES_RECONFIG_REMOVE, dn);
+	blocking_notifier_call_chain(&pSeries_reconfig_chain,
+			    PSERIES_RECONFIG_REMOVE, dn);
 	of_detach_node(dn);
 	of_node_put(dn); /* Must decrement the refcount */
 

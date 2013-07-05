@@ -11,6 +11,7 @@
 #include <linux/sched.h>
 #include <asm/openprom.h>
 #include <asm/oplib.h>
+#include <asm/system.h>
 #include <linux/string.h>
 
 extern void restore_current(void);

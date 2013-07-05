@@ -13,6 +13,7 @@
 #include <linux/init.h>
 #include <linux/device.h>
 
+#include <asm/system.h>
 #include <asm/m32r.h>
 #include <asm/io.h>
 

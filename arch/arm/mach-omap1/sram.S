@@ -9,12 +9,9 @@
  */
 
 #include <linux/linkage.h>
-
 #include <asm/assembler.h>
-
+#include <mach/io.h>
 #include <mach/hardware.h>
-
-#include "iomap.h"
 
 	.text
 

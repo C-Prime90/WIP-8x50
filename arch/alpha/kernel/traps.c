@@ -24,7 +24,6 @@
 #include <asm/sysinfo.h>
 #include <asm/hwrpb.h>
 #include <asm/mmu_context.h>
-#include <asm/special_insns.h>
 
 #include "proto.h"
 

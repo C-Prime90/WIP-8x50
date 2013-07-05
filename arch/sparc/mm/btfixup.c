@@ -12,6 +12,7 @@
 #include <asm/pgalloc.h>
 #include <asm/pgtable.h>
 #include <asm/oplib.h>
+#include <asm/system.h>
 #include <asm/cacheflush.h>
 
 #define BTFIXUP_OPTIMIZE_NOP

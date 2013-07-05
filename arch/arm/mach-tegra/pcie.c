@@ -32,16 +32,14 @@
 #include <linux/irq.h>
 #include <linux/clk.h>
 #include <linux/delay.h>
-#include <linux/export.h>
 
 #include <asm/sizes.h>
 #include <asm/mach/pci.h>
 
+#include <mach/pinmux.h>
 #include <mach/iomap.h>
 #include <mach/clk.h>
 #include <mach/powergate.h>
-
-#include "board.h"
 
 /* register definitions */
 #define AFI_OFFSET	0x3800
@@ -152,9 +150,9 @@
 static void __iomem *reg_pmc_base = IO_ADDRESS(TEGRA_PMC_BASE);
 
 #define pmc_writel(value, reg) \
-	__raw_writel(value, reg_pmc_base + (reg))
+	__raw_writel(value, (u32)reg_pmc_base + (reg))
 #define pmc_readl(reg) \
-	__raw_readl(reg_pmc_base + (reg))
+	__raw_readl((u32)reg_pmc_base + (reg))
 
 /*
  * Tegra2 defines 1GB in the AXI address map for PCIe.
@@ -408,7 +406,7 @@ static int tegra_pcie_setup(int nr, struct pci_sys_data *sys)
 	pp->res[0].flags = IORESOURCE_IO;
 	if (request_resource(&ioport_resource, &pp->res[0]))
 		panic("Request PCIe IO resource failed\n");
-	pci_add_resource_offset(&sys->resources, &pp->res[0], sys->io_offset);
+	sys->resource[0] = &pp->res[0];
 
 	/*
 	 * IORESOURCE_MEM
@@ -427,7 +425,7 @@ static int tegra_pcie_setup(int nr, struct pci_sys_data *sys)
 	pp->res[1].flags = IORESOURCE_MEM;
 	if (request_resource(&iomem_resource, &pp->res[1]))
 		panic("Request PCIe Memory resource failed\n");
-	pci_add_resource_offset(&sys->resources, &pp->res[1], sys->mem_offset);
+	sys->resource[1] = &pp->res[1];
 
 	/*
 	 * IORESOURCE_MEM | IORESOURCE_PREFETCH
@@ -446,12 +444,12 @@ static int tegra_pcie_setup(int nr, struct pci_sys_data *sys)
 	pp->res[2].flags = IORESOURCE_MEM | IORESOURCE_PREFETCH;
 	if (request_resource(&iomem_resource, &pp->res[2]))
 		panic("Request PCIe Prefetch Memory resource failed\n");
-	pci_add_resource_offset(&sys->resources, &pp->res[2], sys->mem_offset);
+	sys->resource[2] = &pp->res[2];
 
 	return 1;
 }
 
-static int tegra_pcie_map_irq(const struct pci_dev *dev, u8 slot, u8 pin)
+static int tegra_pcie_map_irq(struct pci_dev *dev, u8 slot, u8 pin)
 {
 	return INT_PCIE_INTR;
 }
@@ -462,13 +460,12 @@ static struct pci_bus __init *tegra_pcie_scan_bus(int nr,
 	struct tegra_pcie_port *pp;
 
 	if (nr >= tegra_pcie.num_ports)
-		return NULL;
+		return 0;
 
 	pp = tegra_pcie.port + nr;
 	pp->root_bus_nr = sys->busnr;
 
-	return pci_scan_root_bus(NULL, sys->busnr, &tegra_pcie_ops, sys,
-				 &sys->resources);
+	return pci_scan_bus(sys->busnr, &tegra_pcie_ops, sys);
 }
 
 static struct hw_pci tegra_pcie_hw __initdata = {
@@ -585,10 +582,10 @@ static void tegra_pcie_setup_translations(void)
 	afi_writel(0, AFI_MSI_BAR_SZ);
 }
 
-static int tegra_pcie_enable_controller(void)
+static void tegra_pcie_enable_controller(void)
 {
 	u32 val, reg;
-	int i, timeout;
+	int i;
 
 	/* Enable slot clock and pulse the reset signals */
 	for (i = 0, reg = AFI_PEX0_CTRL; i < 2; i++, reg += 0x8) {
@@ -639,14 +636,8 @@ static int tegra_pcie_enable_controller(void)
 	pads_writel(0xfa5cfa5c, 0xc8);
 
 	/* Wait for the PLL to lock */
-	timeout = 300;
 	do {
 		val = pads_readl(PADS_PLL_CTL);
-		usleep_range(1000, 1000);
-		if (--timeout == 0) {
-			pr_err("Tegra PCIe error: timeout waiting for PLL\n");
-			return -EBUSY;
-		}
 	} while (!(val & PADS_PLL_CTL_LOCKDET));
 
 	/* turn off IDDQ override */
@@ -677,7 +668,7 @@ static int tegra_pcie_enable_controller(void)
 	/* Disable all execptions */
 	afi_writel(0, AFI_FPCI_ERROR_MASKS);
 
-	return 0;
+	return;
 }
 
 static void tegra_pcie_xclk_clamp(bool clamp)
@@ -921,15 +912,11 @@ int __init tegra_pcie_init(bool init_port0, bool init_port1)
 	if (!(init_port0 || init_port1))
 		return -ENODEV;
 
-	pcibios_min_mem = 0;
-
 	err = tegra_pcie_get_resources();
 	if (err)
 		return err;
 
-	err = tegra_pcie_enable_controller();
-	if (err)
-		return err;
+	tegra_pcie_enable_controller();
 
 	/* setup the AFI address translations */
 	tegra_pcie_setup_translations();

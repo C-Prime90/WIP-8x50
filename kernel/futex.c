@@ -55,7 +55,7 @@
 #include <linux/pagemap.h>
 #include <linux/syscalls.h>
 #include <linux/signal.h>
-#include <linux/export.h>
+#include <linux/module.h>
 #include <linux/magic.h>
 #include <linux/pid.h>
 #include <linux/nsproxy.h>
@@ -873,7 +873,7 @@ static int wake_futex_pi(u32 __user *uaddr, u32 uval, struct futex_q *this)
 {
 	struct task_struct *new_owner;
 	struct futex_pi_state *pi_state = this->pi_state;
-	u32 uninitialized_var(curval), newval;
+	u32 curval, newval;
 
 	if (!pi_state)
 		return -EINVAL;
@@ -935,7 +935,7 @@ static int wake_futex_pi(u32 __user *uaddr, u32 uval, struct futex_q *this)
 
 static int unlock_futex_pi(u32 __user *uaddr, u32 uval)
 {
-	u32 uninitialized_var(oldval);
+	u32 oldval;
 
 	/*
 	 * There is no waiter, so we unlock the futex. The owner died
@@ -1608,7 +1608,7 @@ static int fixup_pi_state_owner(u32 __user *uaddr, struct futex_q *q,
 	u32 newtid = task_pid_vnr(newowner) | FUTEX_WAITERS;
 	struct futex_pi_state *pi_state = q->pi_state;
 	struct task_struct *oldowner = pi_state->owner;
-	u32 uval, uninitialized_var(curval), newval;
+	u32 uval, curval, newval;
 	int ret;
 
 	/* Owner died? */
@@ -1825,7 +1825,7 @@ static void futex_wait_queue_me(struct futex_hash_bucket *hb, struct futex_q *q,
  *
  * Returns:
  *  0 - uaddr contains val and hb has been locked
- * <1 - -EFAULT or -EWOULDBLOCK (uaddr does not contain val) and hb is unlocked
+ * <1 - -EFAULT or -EWOULDBLOCK (uaddr does not contain val) and hb is unlcoked
  */
 static int futex_wait_setup(u32 __user *uaddr, u32 val, unsigned int flags,
 			   struct futex_q *q, struct futex_hash_bucket **hb)
@@ -2505,7 +2505,7 @@ err_unlock:
  */
 int handle_futex_death(u32 __user *uaddr, struct task_struct *curr, int pi)
 {
-	u32 uval, uninitialized_var(nval), mval;
+	u32 uval, nval, mval;
 
 retry:
 	if (get_user(uval, uaddr))
@@ -2640,7 +2640,7 @@ void exit_robust_list(struct task_struct *curr)
 long do_futex(u32 __user *uaddr, int op, u32 val, ktime_t *timeout,
 		u32 __user *uaddr2, u32 val2, u32 val3)
 {
-	int cmd = op & FUTEX_CMD_MASK;
+	int ret = -ENOSYS, cmd = op & FUTEX_CMD_MASK;
 	unsigned int flags = 0;
 
 	if (!(op & FUTEX_PRIVATE_FLAG))
@@ -2666,31 +2666,43 @@ long do_futex(u32 __user *uaddr, int op, u32 val, ktime_t *timeout,
 	case FUTEX_WAIT:
 		val3 = FUTEX_BITSET_MATCH_ANY;
 	case FUTEX_WAIT_BITSET:
-		return futex_wait(uaddr, flags, val, timeout, val3);
+		ret = futex_wait(uaddr, flags, val, timeout, val3);
+		break;
 	case FUTEX_WAKE:
 		val3 = FUTEX_BITSET_MATCH_ANY;
 	case FUTEX_WAKE_BITSET:
-		return futex_wake(uaddr, flags, val, val3);
+		ret = futex_wake(uaddr, flags, val, val3);
+		break;
 	case FUTEX_REQUEUE:
-		return futex_requeue(uaddr, flags, uaddr2, val, val2, NULL, 0);
+		ret = futex_requeue(uaddr, flags, uaddr2, val, val2, NULL, 0);
+		break;
 	case FUTEX_CMP_REQUEUE:
-		return futex_requeue(uaddr, flags, uaddr2, val, val2, &val3, 0);
+		ret = futex_requeue(uaddr, flags, uaddr2, val, val2, &val3, 0);
+		break;
 	case FUTEX_WAKE_OP:
-		return futex_wake_op(uaddr, flags, uaddr2, val, val2, val3);
+		ret = futex_wake_op(uaddr, flags, uaddr2, val, val2, val3);
+		break;
 	case FUTEX_LOCK_PI:
-		return futex_lock_pi(uaddr, flags, val, timeout, 0);
+		ret = futex_lock_pi(uaddr, flags, val, timeout, 0);
+		break;
 	case FUTEX_UNLOCK_PI:
-		return futex_unlock_pi(uaddr, flags);
+		ret = futex_unlock_pi(uaddr, flags);
+		break;
 	case FUTEX_TRYLOCK_PI:
-		return futex_lock_pi(uaddr, flags, 0, timeout, 1);
+		ret = futex_lock_pi(uaddr, flags, 0, timeout, 1);
+		break;
 	case FUTEX_WAIT_REQUEUE_PI:
 		val3 = FUTEX_BITSET_MATCH_ANY;
-		return futex_wait_requeue_pi(uaddr, flags, val, timeout, val3,
-					     uaddr2);
+		ret = futex_wait_requeue_pi(uaddr, flags, val, timeout, val3,
+					    uaddr2);
+		break;
 	case FUTEX_CMP_REQUEUE_PI:
-		return futex_requeue(uaddr, flags, uaddr2, val, val2, &val3, 1);
+		ret = futex_requeue(uaddr, flags, uaddr2, val, val2, &val3, 1);
+		break;
+	default:
+		ret = -ENOSYS;
 	}
-	return -ENOSYS;
+	return ret;
 }
 
 

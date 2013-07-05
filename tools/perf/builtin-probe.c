@@ -20,6 +20,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *
  */
+#define _GNU_SOURCE
 #include <sys/utsname.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -30,6 +31,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#undef _GNU_SOURCE
 #include "perf.h"
 #include "builtin.h"
 #include "util/util.h"
@@ -44,6 +46,7 @@
 
 #define DEFAULT_VAR_FILTER "!__k???tab_* & !__crc_*"
 #define DEFAULT_FUNC_FILTER "!_*"
+#define MAX_PATH_LEN 256
 
 /* Session management structure */
 static struct {
@@ -58,7 +61,7 @@ static struct {
 	struct perf_probe_event events[MAX_PROBES];
 	struct strlist *dellist;
 	struct line_range line_range;
-	const char *target;
+	const char *target_module;
 	int max_probe_points;
 	struct strfilter *filter;
 } params;
@@ -131,18 +134,10 @@ static int opt_show_lines(const struct option *opt __used,
 {
 	int ret = 0;
 
-	if (!str)
-		return 0;
-
-	if (params.show_lines) {
-		pr_warning("Warning: more than one --line options are"
-			   " detected. Only the first one is valid.\n");
-		return 0;
-	}
-
-	params.show_lines = true;
-	ret = parse_line_range_desc(str, &params.line_range);
+	if (str)
+		ret = parse_line_range_desc(str, &params.line_range);
 	INIT_LIST_HEAD(&params.line_range.line_list);
+	params.show_lines = true;
 
 	return ret;
 }
@@ -246,9 +241,8 @@ static const struct option options[] = {
 		   "file", "vmlinux pathname"),
 	OPT_STRING('s', "source", &symbol_conf.source_prefix,
 		   "directory", "path to kernel source"),
-	OPT_STRING('m', "module", &params.target,
-		   "modname|path",
-		   "target module name (for online) or path (for offline)"),
+	OPT_STRING('m', "module", &params.target_module,
+		   "modname", "target module name"),
 #endif
 	OPT__DRY_RUN(&probe_event_dry_run),
 	OPT_INTEGER('\0', "max-probes", &params.max_probe_points,
@@ -333,7 +327,7 @@ int cmd_probe(int argc, const char **argv, const char *prefix __used)
 		if (!params.filter)
 			params.filter = strfilter__new(DEFAULT_FUNC_FILTER,
 						       NULL);
-		ret = show_available_funcs(params.target,
+		ret = show_available_funcs(params.target_module,
 					   params.filter);
 		strfilter__delete(params.filter);
 		if (ret < 0)
@@ -354,7 +348,7 @@ int cmd_probe(int argc, const char **argv, const char *prefix __used)
 			usage_with_options(probe_usage, options);
 		}
 
-		ret = show_line_range(&params.line_range, params.target);
+		ret = show_line_range(&params.line_range, params.target_module);
 		if (ret < 0)
 			pr_err("  Error: Failed to show lines. (%d)\n", ret);
 		return ret;
@@ -371,7 +365,7 @@ int cmd_probe(int argc, const char **argv, const char *prefix __used)
 
 		ret = show_available_vars(params.events, params.nevents,
 					  params.max_probe_points,
-					  params.target,
+					  params.target_module,
 					  params.filter,
 					  params.show_ext_vars);
 		strfilter__delete(params.filter);
@@ -393,7 +387,7 @@ int cmd_probe(int argc, const char **argv, const char *prefix __used)
 	if (params.nevents) {
 		ret = add_perf_probe_events(params.events, params.nevents,
 					    params.max_probe_points,
-					    params.target,
+					    params.target_module,
 					    params.force_add);
 		if (ret < 0) {
 			pr_err("  Error: Failed to add events. (%d)\n", ret);

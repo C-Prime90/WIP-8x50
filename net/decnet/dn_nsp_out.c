@@ -52,6 +52,7 @@
 #include <linux/route.h>
 #include <linux/slab.h>
 #include <net/sock.h>
+#include <asm/system.h>
 #include <linux/fcntl.h>
 #include <linux/mm.h>
 #include <linux/termios.h>

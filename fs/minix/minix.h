@@ -34,6 +34,7 @@ struct minix_sb_info {
 	unsigned long s_max_size;
 	int s_dirsize;
 	int s_namelen;
+	int s_link_max;
 	struct buffer_head ** s_imap;
 	struct buffer_head ** s_zmap;
 	struct buffer_head * s_sbh;
@@ -45,12 +46,12 @@ struct minix_sb_info {
 extern struct inode *minix_iget(struct super_block *, unsigned long);
 extern struct minix_inode * minix_V1_raw_inode(struct super_block *, ino_t, struct buffer_head **);
 extern struct minix2_inode * minix_V2_raw_inode(struct super_block *, ino_t, struct buffer_head **);
-extern struct inode * minix_new_inode(const struct inode *, umode_t, int *);
+extern struct inode * minix_new_inode(const struct inode *, int, int *);
 extern void minix_free_inode(struct inode * inode);
-extern unsigned long minix_count_free_inodes(struct super_block *sb);
+extern unsigned long minix_count_free_inodes(struct minix_sb_info *sbi);
 extern int minix_new_block(struct inode * inode);
 extern void minix_free_block(struct inode *inode, unsigned long block);
-extern unsigned long minix_count_free_blocks(struct super_block *sb);
+extern unsigned long minix_count_free_blocks(struct minix_sb_info *sbi);
 extern int minix_getattr(struct vfsmount *, struct dentry *, struct kstat *);
 extern int minix_prepare_chunk(struct page *page, loff_t pos, unsigned len);
 
@@ -85,11 +86,6 @@ static inline struct minix_sb_info *minix_sb(struct super_block *sb)
 static inline struct minix_inode_info *minix_i(struct inode *inode)
 {
 	return list_entry(inode, struct minix_inode_info, vfs_inode);
-}
-
-static inline unsigned minix_blocks_needed(unsigned bits, unsigned blocksize)
-{
-	return DIV_ROUND_UP(bits, blocksize * 8);
 }
 
 #if defined(CONFIG_MINIX_FS_NATIVE_ENDIAN) && \
@@ -129,7 +125,7 @@ static inline int minix_find_first_zero_bit(const void *vaddr, unsigned size)
 	if (!size)
 		return 0;
 
-	size >>= 4;
+	size = (size >> 4) + ((size & 15) > 0);
 	while (*p++ == 0xffff) {
 		if (--size == 0)
 			return (p - addr) << 4;

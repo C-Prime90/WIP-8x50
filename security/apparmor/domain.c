@@ -67,7 +67,7 @@ static int may_change_ptraced_domain(struct task_struct *task,
 	int error = 0;
 
 	rcu_read_lock();
-	tracer = ptrace_parent(task);
+	tracer = tracehook_tracer_task(task);
 	if (tracer) {
 		/* released below */
 		cred = get_task_cred(tracer);
@@ -372,12 +372,13 @@ int apparmor_bprm_set_creds(struct linux_binprm *bprm)
 	state = profile->file.start;
 
 	/* buffer freed below, name is pointer into buffer */
-	error = aa_path_name(&bprm->file->f_path, profile->path_flags, &buffer,
-			     &name, &info);
+	error = aa_get_name(&bprm->file->f_path, profile->path_flags, &buffer,
+			    &name);
 	if (error) {
 		if (profile->flags &
 		    (PFLAG_IX_ON_NAME_ERROR | PFLAG_UNCONFINED))
 			error = 0;
+		info = "Exec failed name resolution";
 		name = bprm->filename;
 		goto audit;
 	}
@@ -410,8 +411,7 @@ int apparmor_bprm_set_creds(struct linux_binprm *bprm)
 		 * exec\0change_profile
 		 */
 		state = aa_dfa_null_transition(profile->file.dfa, state);
-		cp = change_profile_perms(profile, cxt->onexec->ns,
-					  cxt->onexec->base.name,
+		cp = change_profile_perms(profile, cxt->onexec->ns, name,
 					  AA_MAY_ONEXEC, state);
 
 		if (!(cp.allow & AA_MAY_ONEXEC))

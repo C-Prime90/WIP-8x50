@@ -25,6 +25,7 @@
 #include <linux/freezer.h>
 #include <linux/io.h>
 #include <linux/tracehook.h>
+#include <asm/system.h>
 #include <asm/ucontext.h>
 #include <asm/uaccess.h>
 #include <asm/pgtable.h>
@@ -57,13 +58,12 @@ sys_sigsuspend(old_sigset_t mask,
 	       unsigned long r5, unsigned long r6, unsigned long r7,
 	       struct pt_regs __regs)
 {
-	sigset_t blocked;
-
-	current->saved_sigmask = current->blocked;
-
 	mask &= _BLOCKABLE;
-	siginitset(&blocked, mask);
-	set_current_blocked(&blocked);
+	spin_lock_irq(&current->sighand->siglock);
+	current->saved_sigmask = current->blocked;
+	siginitset(&current->blocked, mask);
+	recalc_sigpending();
+	spin_unlock_irq(&current->sighand->siglock);
 
 	current->state = TASK_INTERRUPTIBLE;
 	schedule();
@@ -240,7 +240,11 @@ asmlinkage int sys_sigreturn(unsigned long r4, unsigned long r5,
 		goto badframe;
 
 	sigdelsetmask(&set, ~_BLOCKABLE);
-	set_current_blocked(&set);
+
+	spin_lock_irq(&current->sighand->siglock);
+	current->blocked = set;
+	recalc_sigpending();
+	spin_unlock_irq(&current->sighand->siglock);
 
 	if (restore_sigcontext(regs, &frame->sc, &r0))
 		goto badframe;
@@ -270,7 +274,10 @@ asmlinkage int sys_rt_sigreturn(unsigned long r4, unsigned long r5,
 		goto badframe;
 
 	sigdelsetmask(&set, ~_BLOCKABLE);
-	set_current_blocked(&set);
+	spin_lock_irq(&current->sighand->siglock);
+	current->blocked = set;
+	recalc_sigpending();
+	spin_unlock_irq(&current->sighand->siglock);
 
 	if (restore_sigcontext(regs, &frame->uc.uc_mcontext, &r0))
 		goto badframe;
@@ -541,8 +548,17 @@ handle_signal(unsigned long sig, struct k_sigaction *ka, siginfo_t *info,
 	else
 		ret = setup_frame(sig, ka, oldset, regs);
 
-	if (ret == 0)
-		block_sigmask(ka, sig);
+	if (ka->sa.sa_flags & SA_ONESHOT)
+		ka->sa.sa_handler = SIG_DFL;
+
+	if (ret == 0) {
+		spin_lock_irq(&current->sighand->siglock);
+		sigorsets(&current->blocked,&current->blocked,&ka->sa.sa_mask);
+		if (!(ka->sa.sa_flags & SA_NODEFER))
+			sigaddset(&current->blocked,sig);
+		recalc_sigpending();
+		spin_unlock_irq(&current->sighand->siglock);
+	}
 
 	return ret;
 }
@@ -572,6 +588,9 @@ static void do_signal(struct pt_regs *regs, unsigned int save_r0)
 	if (!user_mode(regs))
 		return;
 
+	if (try_to_freeze())
+		goto no_signal;
+
 	if (current_thread_info()->status & TS_RESTORE_SIGMASK)
 		oldset = &current->saved_sigmask;
 	else
@@ -599,6 +618,7 @@ static void do_signal(struct pt_regs *regs, unsigned int save_r0)
 		return;
 	}
 
+no_signal:
 	/* Did we come from a system call? */
 	if (regs->tra >= 0) {
 		/* Restart the system call - no handlers present */

@@ -34,7 +34,6 @@
 #include <asm/irq_cpu.h>
 #include <linux/io.h>
 #include <asm/irq_regs.h>
-#include <asm/setup.h>
 #include <asm/mips-boards/generic.h>
 
 #include <asm/mach-powertv/asic_regs.h>

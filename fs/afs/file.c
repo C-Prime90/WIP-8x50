@@ -251,7 +251,7 @@ static int afs_readpages(struct file *file, struct address_space *mapping,
 	ASSERT(key != NULL);
 
 	vnode = AFS_FS_I(mapping->host);
-	if (test_bit(AFS_VNODE_DELETED, &vnode->flags)) {
+	if (vnode->flags & AFS_VNODE_DELETED) {
 		_leave(" = -ESTALE");
 		return -ESTALE;
 	}

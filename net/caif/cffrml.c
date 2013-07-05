@@ -34,9 +34,11 @@ static u32 cffrml_rcv_error;
 static u32 cffrml_rcv_checsum_error;
 struct cflayer *cffrml_create(u16 phyid, bool use_fcs)
 {
-	struct cffrml *this = kzalloc(sizeof(struct cffrml), GFP_ATOMIC);
-	if (!this)
+	struct cffrml *this = kmalloc(sizeof(struct cffrml), GFP_ATOMIC);
+	if (!this) {
+		pr_warn("Out of memory\n");
 		return NULL;
+	}
 	this->pcpu_refcnt = alloc_percpu(int);
 	if (this->pcpu_refcnt == NULL) {
 		kfree(this);
@@ -45,6 +47,7 @@ struct cflayer *cffrml_create(u16 phyid, bool use_fcs)
 
 	caif_assert(offsetof(struct cffrml, layer) == 0);
 
+	memset(this, 0, sizeof(struct cflayer));
 	this->layer.receive = cffrml_receive;
 	this->layer.transmit = cffrml_transmit;
 	this->layer.ctrlcmd = cffrml_ctrlcmd;
@@ -136,21 +139,20 @@ static int cffrml_receive(struct cflayer *layr, struct cfpkt *pkt)
 
 static int cffrml_transmit(struct cflayer *layr, struct cfpkt *pkt)
 {
+	int tmp;
 	u16 chks;
 	u16 len;
-	__le16 data;
-
 	struct cffrml *this = container_obj(layr);
 	if (this->dofcs) {
 		chks = cfpkt_iterate(pkt, cffrml_checksum, 0xffff);
-		data = cpu_to_le16(chks);
-		cfpkt_add_trail(pkt, &data, 2);
+		tmp = cpu_to_le16(chks);
+		cfpkt_add_trail(pkt, &tmp, 2);
 	} else {
 		cfpkt_pad_trail(pkt, 2);
 	}
 	len = cfpkt_getlen(pkt);
-	data = cpu_to_le16(len);
-	cfpkt_add_head(pkt, &data, 2);
+	tmp = cpu_to_le16(len);
+	cfpkt_add_head(pkt, &tmp, 2);
 	cfpkt_info(pkt)->hdr_len += 2;
 	if (cfpkt_erroneous(pkt)) {
 		pr_err("Packet is erroneous!\n");
@@ -177,14 +179,14 @@ void cffrml_put(struct cflayer *layr)
 {
 	struct cffrml *this = container_obj(layr);
 	if (layr != NULL && this->pcpu_refcnt != NULL)
-		this_cpu_dec(*this->pcpu_refcnt);
+		irqsafe_cpu_dec(*this->pcpu_refcnt);
 }
 
 void cffrml_hold(struct cflayer *layr)
 {
 	struct cffrml *this = container_obj(layr);
 	if (layr != NULL && this->pcpu_refcnt != NULL)
-		this_cpu_inc(*this->pcpu_refcnt);
+		irqsafe_cpu_inc(*this->pcpu_refcnt);
 }
 
 int cffrml_refcnt_read(struct cflayer *layr)

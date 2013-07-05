@@ -23,6 +23,7 @@
 #include <linux/stddef.h>
 #include <linux/elf.h>
 #include <linux/ptrace.h>
+#include <linux/module.h>
 #include <linux/ratelimit.h>
 
 #include <asm/sigcontext.h>
@@ -33,7 +34,6 @@
 #include <asm/cacheflush.h>
 #include <asm/syscalls.h>
 #include <asm/vdso.h>
-#include <asm/switch_to.h>
 
 #include "signal.h"
 

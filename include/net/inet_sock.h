@@ -71,7 +71,7 @@ struct ip_options_data {
 
 struct inet_request_sock {
 	struct request_sock	req;
-#if IS_ENABLED(CONFIG_IPV6)
+#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
 	u16			inet6_rsk_offset;
 #endif
 	__be16			loc_port;
@@ -132,7 +132,6 @@ struct rtable;
  * @tos - TOS
  * @mc_ttl - Multicasting TTL
  * @is_icsk - is this an inet_connection_sock?
- * @uc_index - Unicast outgoing device index
  * @mc_index - Multicast device index
  * @mc_list - Group array
  * @cork - info to build ip hdr on each ip frag while socket is corked
@@ -140,7 +139,7 @@ struct rtable;
 struct inet_sock {
 	/* sk and pinet6 has to be the first two members of inet_sock */
 	struct sock		sk;
-#if IS_ENABLED(CONFIG_IPV6)
+#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
 	struct ipv6_pinfo	*pinet6;
 #endif
 	/* Socket demultiplex comparisons on incoming packets. */
@@ -168,8 +167,6 @@ struct inet_sock {
 				transparent:1,
 				mc_all:1,
 				nodefrag:1;
-	__u8			rcv_tos;
-	int			uc_index;
 	int			mc_index;
 	__be32			mc_addr;
 	struct ip_mc_socklist __rcu	*mc_list;
@@ -191,7 +188,7 @@ static inline void __inet_sk_copy_descendant(struct sock *sk_to,
 	memcpy(inet_sk(sk_to) + 1, inet_sk(sk_from) + 1,
 	       sk_from->sk_prot->obj_size - ancestor_size);
 }
-#if !(IS_ENABLED(CONFIG_IPV6))
+#if !(defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE))
 static inline void inet_sk_copy_descendant(struct sock *sk_to,
 					   const struct sock *sk_from)
 {
@@ -244,7 +241,7 @@ static inline __u8 inet_sk_flowi_flags(const struct sock *sk)
 {
 	__u8 flags = 0;
 
-	if (inet_sk(sk)->transparent || inet_sk(sk)->hdrincl)
+	if (inet_sk(sk)->transparent)
 		flags |= FLOWI_FLAG_ANYSRC;
 	if (sk->sk_protocol == IPPROTO_TCP)
 		flags |= FLOWI_FLAG_PRECOW_METRICS;

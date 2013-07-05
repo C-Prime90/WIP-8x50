@@ -37,7 +37,7 @@ int nf_register_afinfo(const struct nf_afinfo *afinfo)
 	err = mutex_lock_interruptible(&afinfo_mutex);
 	if (err < 0)
 		return err;
-	RCU_INIT_POINTER(nf_afinfo[afinfo->family], afinfo);
+	rcu_assign_pointer(nf_afinfo[afinfo->family], afinfo);
 	mutex_unlock(&afinfo_mutex);
 	return 0;
 }
@@ -46,7 +46,7 @@ EXPORT_SYMBOL_GPL(nf_register_afinfo);
 void nf_unregister_afinfo(const struct nf_afinfo *afinfo)
 {
 	mutex_lock(&afinfo_mutex);
-	RCU_INIT_POINTER(nf_afinfo[afinfo->family], NULL);
+	rcu_assign_pointer(nf_afinfo[afinfo->family], NULL);
 	mutex_unlock(&afinfo_mutex);
 	synchronize_rcu();
 }
@@ -54,12 +54,6 @@ EXPORT_SYMBOL_GPL(nf_unregister_afinfo);
 
 struct list_head nf_hooks[NFPROTO_NUMPROTO][NF_MAX_HOOKS] __read_mostly;
 EXPORT_SYMBOL(nf_hooks);
-
-#if defined(CONFIG_JUMP_LABEL)
-struct static_key nf_hooks_needed[NFPROTO_NUMPROTO][NF_MAX_HOOKS];
-EXPORT_SYMBOL(nf_hooks_needed);
-#endif
-
 static DEFINE_MUTEX(nf_hook_mutex);
 
 int nf_register_hook(struct nf_hook_ops *reg)
@@ -76,9 +70,6 @@ int nf_register_hook(struct nf_hook_ops *reg)
 	}
 	list_add_rcu(&reg->list, elem->list.prev);
 	mutex_unlock(&nf_hook_mutex);
-#if defined(CONFIG_JUMP_LABEL)
-	static_key_slow_inc(&nf_hooks_needed[reg->pf][reg->hooknum]);
-#endif
 	return 0;
 }
 EXPORT_SYMBOL(nf_register_hook);
@@ -88,9 +79,7 @@ void nf_unregister_hook(struct nf_hook_ops *reg)
 	mutex_lock(&nf_hook_mutex);
 	list_del_rcu(&reg->list);
 	mutex_unlock(&nf_hook_mutex);
-#if defined(CONFIG_JUMP_LABEL)
-	static_key_slow_dec(&nf_hooks_needed[reg->pf][reg->hooknum]);
-#endif
+
 	synchronize_net();
 }
 EXPORT_SYMBOL(nf_unregister_hook);
@@ -191,16 +180,17 @@ next_hook:
 		if (ret == 0)
 			ret = -EPERM;
 	} else if ((verdict & NF_VERDICT_MASK) == NF_QUEUE) {
-		int err = nf_queue(skb, elem, pf, hook, indev, outdev, okfn,
-						verdict >> NF_VERDICT_QBITS);
-		if (err < 0) {
-			if (err == -ECANCELED)
+		ret = nf_queue(skb, elem, pf, hook, indev, outdev, okfn,
+			       verdict >> NF_VERDICT_QBITS);
+		if (ret < 0) {
+			if (ret == -ECANCELED)
 				goto next_hook;
-			if (err == -ESRCH &&
+			if (ret == -ESRCH &&
 			   (verdict & NF_VERDICT_FLAG_QUEUE_BYPASS))
 				goto next_hook;
 			kfree_skb(skb);
 		}
+		ret = 0;
 	}
 	rcu_read_unlock();
 	return ret;
@@ -229,7 +219,7 @@ int skb_make_writable(struct sk_buff *skb, unsigned int writable_len)
 }
 EXPORT_SYMBOL(skb_make_writable);
 
-#if IS_ENABLED(CONFIG_NF_CONNTRACK)
+#if defined(CONFIG_NF_CONNTRACK) || defined(CONFIG_NF_CONNTRACK_MODULE)
 /* This does not belong here, but locally generated errors need it if connection
    tracking in use: without this, connection may not be in hash table, and hence
    manufactured ICMP or RST packets will not be associated with it. */

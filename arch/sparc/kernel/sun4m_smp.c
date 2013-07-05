@@ -10,7 +10,6 @@
 #include <linux/cpu.h>
 
 #include <asm/cacheflush.h>
-#include <asm/switch_to.h>
 #include <asm/tlbflush.h>
 
 #include "irq.h"

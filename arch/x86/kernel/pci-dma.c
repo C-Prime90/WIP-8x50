@@ -1,7 +1,6 @@
 #include <linux/dma-mapping.h>
 #include <linux/dma-debug.h>
 #include <linux/dmar.h>
-#include <linux/export.h>
 #include <linux/bootmem.h>
 #include <linux/gfp.h>
 #include <linux/pci.h>
@@ -45,15 +44,6 @@ int iommu_detected __read_mostly = 0;
  */
 int iommu_pass_through __read_mostly;
 
-/*
- * Group multi-function PCI devices into a single device-group for the
- * iommu_device_group interface.  This tells the iommu driver to pretend
- * it cannot distinguish between functions of a device, exposing only one
- * group for the device.  Useful for disallowing use of individual PCI
- * functions from userspace drivers.
- */
-int iommu_group_mf __read_mostly;
-
 extern struct iommu_table_entry __iommu_table[], __iommu_table_end[];
 
 /* Dummy device used for NULL arguments (normally ISA). */
@@ -96,8 +86,7 @@ void __init pci_iommu_alloc(void)
 	}
 }
 void *dma_generic_alloc_coherent(struct device *dev, size_t size,
-				 dma_addr_t *dma_addr, gfp_t flag,
-				 struct dma_attrs *attrs)
+				 dma_addr_t *dma_addr, gfp_t flag)
 {
 	unsigned long dma_mask;
 	struct page *page;
@@ -128,8 +117,8 @@ again:
 }
 
 /*
- * See <Documentation/x86/x86_64/boot-options.txt> for the iommu kernel
- * parameter documentation.
+ * See <Documentation/x86_64/boot-options.txt> for the iommu kernel parameter
+ * documentation.
  */
 static __init int iommu_setup(char *p)
 {
@@ -179,8 +168,6 @@ static __init int iommu_setup(char *p)
 #endif
 		if (!strncmp(p, "pt", 2))
 			iommu_pass_through = 1;
-		if (!strncmp(p, "group_mf", 8))
-			iommu_group_mf = 1;
 
 		gart_parse_options(p);
 
@@ -263,11 +250,10 @@ rootfs_initcall(pci_iommu_init);
 
 static __devinit void via_no_dac(struct pci_dev *dev)
 {
-	if (forbid_dac == 0) {
+	if ((dev->class >> 8) == PCI_CLASS_BRIDGE_PCI && forbid_dac == 0) {
 		dev_info(&dev->dev, "disabling DAC on VIA PCI bridge\n");
 		forbid_dac = 1;
 	}
 }
-DECLARE_PCI_FIXUP_CLASS_FINAL(PCI_VENDOR_ID_VIA, PCI_ANY_ID,
-				PCI_CLASS_BRIDGE_PCI, 8, via_no_dac);
+DECLARE_PCI_FIXUP_FINAL(PCI_VENDOR_ID_VIA, PCI_ANY_ID, via_no_dac);
 #endif

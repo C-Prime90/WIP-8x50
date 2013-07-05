@@ -117,7 +117,7 @@ _decode_session4(struct sk_buff *skb, struct flowi *fl, int reverse)
 	memset(fl4, 0, sizeof(struct flowi4));
 	fl4->flowi4_mark = skb->mark;
 
-	if (!ip_is_fragment(iph)) {
+	if (!(iph->frag_off & htons(IP_MF | IP_OFFSET))) {
 		switch (iph->protocol) {
 		case IPPROTO_UDP:
 		case IPPROTO_UDPLITE:

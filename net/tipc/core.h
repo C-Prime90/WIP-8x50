@@ -47,7 +47,7 @@
 #include <linux/string.h>
 #include <asm/uaccess.h>
 #include <linux/interrupt.h>
-#include <linux/atomic.h>
+#include <asm/atomic.h>
 #include <asm/hardirq.h>
 #include <linux/netdevice.h>
 #include <linux/in.h>
@@ -60,6 +60,12 @@
 
 struct tipc_msg;	/* msg.h */
 struct print_buf;	/* log.h */
+
+/*
+ * TIPC sanity test macros
+ */
+
+#define assert(i)  BUG_ON(!(i))
 
 /*
  * TIPC system monitoring code
@@ -130,6 +136,13 @@ void tipc_msg_dbg(struct print_buf *, struct tipc_msg *, const char *);
 #define ELINKCONG EAGAIN	/* link congestion <=> resource unavailable */
 
 /*
+ * TIPC operating mode routines
+ */
+#define TIPC_NOT_RUNNING  0
+#define TIPC_NODE_MODE    1
+#define TIPC_NET_MODE     2
+
+/*
  * Global configuration variables
  */
 
@@ -144,6 +157,7 @@ extern int tipc_remote_management;
  * Other global variables
  */
 
+extern int tipc_mode;
 extern int tipc_random;
 extern const char tipc_alphabet[];
 
@@ -159,6 +173,16 @@ extern int  tipc_netlink_start(void);
 extern void tipc_netlink_stop(void);
 extern int  tipc_socket_init(void);
 extern void tipc_socket_stop(void);
+
+static inline int delimit(int val, int min, int max)
+{
+	if (val > max)
+		return max;
+	if (val < min)
+		return min;
+	return val;
+}
+
 
 /*
  * TIPC timer and signal code
@@ -260,5 +284,29 @@ static inline struct tipc_msg *buf_msg(struct sk_buff *skb)
 }
 
 extern struct sk_buff *tipc_buf_acquire(u32 size);
+
+/**
+ * buf_discard - frees a TIPC message buffer
+ * @skb: message buffer
+ *
+ * Frees a message buffer.  If passed NULL, just returns.
+ */
+
+static inline void buf_discard(struct sk_buff *skb)
+{
+	kfree_skb(skb);
+}
+
+/**
+ * buf_linearize - convert a TIPC message buffer into a single contiguous piece
+ * @skb: message buffer
+ *
+ * Returns 0 on success.
+ */
+
+static inline int buf_linearize(struct sk_buff *skb)
+{
+	return skb_linearize(skb);
+}
 
 #endif

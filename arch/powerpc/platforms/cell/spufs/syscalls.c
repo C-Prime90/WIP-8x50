@@ -1,6 +1,6 @@
 #include <linux/file.h>
 #include <linux/fs.h>
-#include <linux/export.h>
+#include <linux/module.h>
 #include <linux/mount.h>
 #include <linux/namei.h>
 #include <linux/slab.h>
@@ -60,17 +60,23 @@ out:
 }
 
 static long do_spu_create(const char __user *pathname, unsigned int flags,
-		umode_t mode, struct file *neighbor)
+		mode_t mode, struct file *neighbor)
 {
-	struct path path;
-	struct dentry *dentry;
+	char *tmp;
 	int ret;
 
-	dentry = user_path_create(AT_FDCWD, pathname, &path, 1);
-	ret = PTR_ERR(dentry);
-	if (!IS_ERR(dentry)) {
-		ret = spufs_create(&path, dentry, flags, mode, neighbor);
-		path_put(&path);
+	tmp = getname(pathname);
+	ret = PTR_ERR(tmp);
+	if (!IS_ERR(tmp)) {
+		struct nameidata nd;
+
+		ret = kern_path_parent(tmp, &nd);
+		if (!ret) {
+			nd.flags |= LOOKUP_OPEN | LOOKUP_CREATE;
+			ret = spufs_create(&nd, flags, mode, neighbor);
+			path_put(&nd.path);
+		}
+		putname(tmp);
 	}
 
 	return ret;

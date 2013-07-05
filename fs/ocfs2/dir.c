@@ -1184,7 +1184,8 @@ static int __ocfs2_delete_entry(handle_t *handle, struct inode *dir,
 			if (pde)
 				le16_add_cpu(&pde->rec_len,
 						le16_to_cpu(de->rec_len));
-			de->inode = 0;
+			else
+				de->inode = 0;
 			dir->i_version++;
 			ocfs2_journal_dirty(handle, bh);
 			goto bail;
@@ -2291,7 +2292,7 @@ static int ocfs2_fill_new_dir_id(struct ocfs2_super *osb,
 	ocfs2_journal_dirty(handle, di_bh);
 
 	i_size_write(inode, size);
-	set_nlink(inode, 2);
+	inode->i_nlink = 2;
 	inode->i_blocks = ocfs2_inode_sector_count(inode);
 
 	ret = ocfs2_mark_inode_dirty(handle, inode, di_bh);
@@ -2353,7 +2354,7 @@ static int ocfs2_fill_new_dir_el(struct ocfs2_super *osb,
 	ocfs2_journal_dirty(handle, new_bh);
 
 	i_size_write(inode, inode->i_sb->s_blocksize);
-	set_nlink(inode, 2);
+	inode->i_nlink = 2;
 	inode->i_blocks = ocfs2_inode_sector_count(inode);
 	status = ocfs2_mark_inode_dirty(handle, inode, fe_bh);
 	if (status < 0) {

@@ -53,7 +53,7 @@ xfs_dir_ialloc(
 					   output: may be a new transaction. */
 	xfs_inode_t	*dp,		/* directory within whose allocate
 					   the inode. */
-	umode_t		mode,
+	mode_t		mode,
 	xfs_nlink_t	nlink,
 	xfs_dev_t	rdev,
 	prid_t		prid,		/* project id */
@@ -296,6 +296,8 @@ xfs_bumplink(
 	xfs_trans_t *tp,
 	xfs_inode_t *ip)
 {
+	if (ip->i_d.di_nlink >= XFS_MAXLINK)
+		return XFS_ERROR(EMLINK);
 	xfs_trans_ichgtime(tp, ip, XFS_ICHGTIME_CHG);
 
 	ASSERT(ip->i_d.di_nlink > 0);

@@ -13,7 +13,6 @@
  */
 
 #include <linux/delay.h>
-#include <linux/dma-mapping.h>
 #include <linux/types.h>
 #include <linux/init.h>
 #include <linux/clk.h>
@@ -36,7 +35,6 @@
 #include <asm/mach/time.h>
 #include <asm/memory.h>
 #include <asm/mach/map.h>
-#include <asm/memblock.h>
 #include <mach/common.h>
 #include <mach/iomux-mx3.h>
 #include <mach/3ds_debugboard.h>
@@ -55,8 +53,11 @@ static int mx31_3ds_pins[] = {
 	MX31_PIN_RXD1__RXD1,
 	IOMUX_MODE(MX31_PIN_GPIO1_1, IOMUX_CONFIG_GPIO),
 	/*SPI0*/
-	IOMUX_MODE(MX31_PIN_DSR_DCE1, IOMUX_CONFIG_ALT1),
-	IOMUX_MODE(MX31_PIN_RI_DCE1, IOMUX_CONFIG_ALT1),
+	MX31_PIN_CSPI1_SCLK__SCLK,
+	MX31_PIN_CSPI1_MOSI__MOSI,
+	MX31_PIN_CSPI1_MISO__MISO,
+	MX31_PIN_CSPI1_SPI_RDY__SPI_RDY,
+	MX31_PIN_CSPI1_SS2__SS2, /* CS for LCD */
 	/* SPI 1 */
 	MX31_PIN_CSPI2_SCLK__SCLK,
 	MX31_PIN_CSPI2_MOSI__MOSI,
@@ -286,6 +287,8 @@ static struct mx3fb_platform_data mx3fb_pdata __initdata = {
 static struct l4f00242t03_pdata mx31_3ds_l4f00242t03_pdata = {
 	.reset_gpio		= IOMUX_TO_GPIO(MX31_PIN_LCS1),
 	.data_enable_gpio	= IOMUX_TO_GPIO(MX31_PIN_SER_RS),
+	.core_supply		= "lcd_2v8",
+	.io_supply		= "vdd_lcdio",
 };
 
 /*
@@ -410,7 +413,7 @@ static struct regulator_init_data vmmc2_init = {
 };
 
 static struct regulator_consumer_supply vmmc1_consumers[] = {
-	REGULATOR_SUPPLY("vcore", "spi0.0"),
+	REGULATOR_SUPPLY("lcd_2v8", NULL),
 	REGULATOR_SUPPLY("cmos_2v8", "soc-camera-pdrv.0"),
 };
 
@@ -427,7 +430,7 @@ static struct regulator_init_data vmmc1_init = {
 };
 
 static struct regulator_consumer_supply vgen_consumers[] = {
-	REGULATOR_SUPPLY("vdd", "spi0.0"),
+	REGULATOR_SUPPLY("vdd_lcdio", NULL),
 };
 
 static struct regulator_init_data vgen_init = {
@@ -493,7 +496,7 @@ static struct mc13xxx_platform_data mc13783_pdata = {
 		.regulators = mx31_3ds_regulators,
 		.num_regulators = ARRAY_SIZE(mx31_3ds_regulators),
 	},
-	.flags  = MC13XXX_USE_TOUCHSCREEN | MC13XXX_USE_RTC,
+	.flags  = MC13783_USE_REGULATOR | MC13783_USE_TOUCHSCREEN,
 };
 
 /* SPI */
@@ -541,7 +544,7 @@ static const struct mxc_nand_platform_data
 mx31_3ds_nand_board_info __initconst = {
 	.width		= 1,
 	.hw_ecc		= 1,
-#ifdef CONFIG_MACH_MX31_3DS_MXC_NAND_USE_BBT
+#ifdef MACH_MX31_3DS_MXC_NAND_USE_BBT
 	.flash_bbt	= 1,
 #endif
 };
@@ -686,11 +689,6 @@ static void __init mx31_3ds_init(void)
 {
 	int ret;
 
-	imx31_soc_init();
-
-	/* Configure SPI1 IOMUX */
-	mxc_iomux_set_gpr(MUX_PGP_CSPI_BB, true);
-
 	mxc_iomux_setup_multiple_pins(mx31_3ds_pins, ARRAY_SIZE(mx31_3ds_pins),
 				      "mx31_3ds");
 
@@ -755,19 +753,19 @@ static struct sys_timer mx31_3ds_timer = {
 static void __init mx31_3ds_reserve(void)
 {
 	/* reserve MX31_3DS_CAMERA_BUF_SIZE bytes for mx3-camera */
-	mx3_camera_base = arm_memblock_steal(MX31_3DS_CAMERA_BUF_SIZE,
+	mx3_camera_base = memblock_alloc(MX31_3DS_CAMERA_BUF_SIZE,
 					 MX31_3DS_CAMERA_BUF_SIZE);
+	memblock_free(mx3_camera_base, MX31_3DS_CAMERA_BUF_SIZE);
+	memblock_remove(mx3_camera_base, MX31_3DS_CAMERA_BUF_SIZE);
 }
 
 MACHINE_START(MX31_3DS, "Freescale MX31PDK (3DS)")
 	/* Maintainer: Freescale Semiconductor, Inc. */
-	.atag_offset = 0x100,
+	.boot_params = MX3x_PHYS_OFFSET + 0x100,
 	.map_io = mx31_map_io,
 	.init_early = imx31_init_early,
 	.init_irq = mx31_init_irq,
-	.handle_irq = imx31_handle_irq,
 	.timer = &mx31_3ds_timer,
 	.init_machine = mx31_3ds_init,
 	.reserve = mx31_3ds_reserve,
-	.restart	= mxc_restart,
 MACHINE_END

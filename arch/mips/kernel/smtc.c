@@ -30,7 +30,8 @@
 
 #include <asm/cpu.h>
 #include <asm/processor.h>
-#include <linux/atomic.h>
+#include <asm/atomic.h>
+#include <asm/system.h>
 #include <asm/hardirq.h>
 #include <asm/hazards.h>
 #include <asm/irq.h>
@@ -291,7 +292,7 @@ static void smtc_configure_tlb(void)
  * possibly leave some TCs/VPEs as "slave" processors.
  *
  * Use c0_MVPConf0 to find out how many TCs are available, setting up
- * cpu_possible_mask and the logical/physical mappings.
+ * cpu_possible_map and the logical/physical mappings.
  */
 
 int __init smtc_build_cpu_map(int start_cpu_slot)
@@ -558,7 +559,7 @@ void smtc_prepare_cpus(int cpus)
 
 	pipi = kmalloc(nipi *sizeof(struct smtc_ipi), GFP_KERNEL);
 	if (pipi == NULL)
-		panic("kmalloc of IPI message buffers failed");
+		panic("kmalloc of IPI message buffers failed\n");
 	else
 		printk("IPI buffer pool of %d buffers\n", nipi);
 	for (i = 0; i < nipi; i++) {
@@ -812,7 +813,7 @@ void smtc_send_ipi(int cpu, int type, unsigned int action)
 	if (pipi == NULL) {
 		bust_spinlocks(1);
 		mips_mt_regdump(dvpe());
-		panic("IPI Msg. Buffers Depleted");
+		panic("IPI Msg. Buffers Depleted\n");
 	}
 	pipi->type = type;
 	pipi->arg = (void *)action;
@@ -1129,7 +1130,7 @@ static void ipi_irq_dispatch(void)
 
 static struct irqaction irq_ipi = {
 	.handler	= ipi_interrupt,
-	.flags		= IRQF_PERCPU,
+	.flags		= IRQF_DISABLED | IRQF_PERCPU,
 	.name		= "SMTC_IPI"
 };
 

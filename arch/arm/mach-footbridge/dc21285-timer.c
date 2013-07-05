@@ -14,7 +14,6 @@
 
 #include <asm/hardware/dec21285.h>
 #include <asm/mach/time.h>
-#include <asm/system_info.h>
 
 #include "common.h"
 

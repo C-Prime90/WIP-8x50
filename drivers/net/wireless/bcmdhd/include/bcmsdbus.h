@@ -2,9 +2,9 @@
  * Definitions for API from sdio common code (bcmsdh) to individual
  * host controller drivers.
  *
- * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 1999-2011, Broadcom Corporation
  * 
- *      Unless you and Broadcom execute a separate written software license
+ *         Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
  * available at http://www.broadcom.com/licenses/GPLv2.php, with the
@@ -22,7 +22,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: bcmsdbus.h 387187 2013-02-24 09:19:34Z $
+ * $Id: bcmsdbus.h 300017 2011-12-01 20:30:27Z $
  */
 
 #ifndef	_sdio_api_h_
@@ -45,7 +45,6 @@
 
 #define SDIOH_DATA_PIO          0       /* PIO mode */
 #define SDIOH_DATA_DMA          1       /* DMA mode */
-
 
 
 typedef int SDIOH_API_RC;
@@ -87,11 +86,6 @@ extern SDIOH_API_RC sdioh_request_buffer(sdioh_info_t *si, uint pio_dma, uint fi
 	uint rw, uint fnc_num, uint32 addr, uint regwidth, uint32 buflen, uint8 *buffer,
 	void *pkt);
 
-#define sdioh_glom_post(a, b, c, d)
-#define sdioh_glom_clear(a)
-#define sdioh_set_mode(a) (0)
-#define sdioh_glom_enabled() (FALSE)
-
 /* get cis data */
 extern SDIOH_API_RC sdioh_cis_read(sdioh_info_t *si, uint fuc, uint8 *cis, uint32 length);
 
@@ -123,9 +117,6 @@ void *bcmsdh_get_sdioh(bcmsdh_info_t *sdh);
 
 
 
-#if defined(BCMSDIOH_STD)
-	#define SDIOH_SLEEP_ENABLED
-#endif
 extern SDIOH_API_RC sdioh_sleep(sdioh_info_t *si, bool enab);
 
 /* GPIO support */

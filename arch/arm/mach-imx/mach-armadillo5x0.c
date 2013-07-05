@@ -38,8 +38,6 @@
 #include <linux/usb/otg.h>
 #include <linux/usb/ulpi.h>
 #include <linux/delay.h>
-#include <linux/regulator/machine.h>
-#include <linux/regulator/fixed.h>
 
 #include <mach/hardware.h>
 #include <asm/mach-types.h>
@@ -53,7 +51,7 @@
 #include <mach/ulpi.h>
 
 #include "devices-imx31.h"
-#include "crmregs-imx3.h"
+#include "crmregs-imx31.h"
 
 static int armadillo5x0_pins[] = {
 	/* UART1 */
@@ -316,17 +314,23 @@ static struct mtd_partition armadillo5x0_nor_flash_partitions[] = {
 	},
 };
 
-static const struct physmap_flash_data
-		armadillo5x0_nor_flash_pdata __initconst = {
+static struct physmap_flash_data armadillo5x0_nor_flash_pdata = {
 	.width		= 2,
 	.parts		= armadillo5x0_nor_flash_partitions,
 	.nr_parts	= ARRAY_SIZE(armadillo5x0_nor_flash_partitions),
 };
 
-static const struct resource armadillo5x0_nor_flash_resource __initconst = {
+static struct resource armadillo5x0_nor_flash_resource = {
 	.flags		= IORESOURCE_MEM,
 	.start		= MX31_CS0_BASE_ADDR,
 	.end		= MX31_CS0_BASE_ADDR + SZ_64M - 1,
+};
+
+static struct platform_device armadillo5x0_nor_flash = {
+	.name			= "physmap-flash",
+	.id			= -1,
+	.num_resources		= 1,
+	.resource		= &armadillo5x0_nor_flash_resource,
 };
 
 /*
@@ -481,22 +485,13 @@ static struct platform_device *devices[] __initdata = {
 	&armadillo5x0_smc911x_device,
 };
 
-static struct regulator_consumer_supply dummy_supplies[] = {
-	REGULATOR_SUPPLY("vdd33a", "smsc911x"),
-	REGULATOR_SUPPLY("vddvario", "smsc911x"),
-};
-
 /*
  * Perform board specific initializations
  */
 static void __init armadillo5x0_init(void)
 {
-	imx31_soc_init();
-
 	mxc_iomux_setup_multiple_pins(armadillo5x0_pins,
 			ARRAY_SIZE(armadillo5x0_pins), "armadillo5x0");
-
-	regulator_register_fixed(0, dummy_supplies, ARRAY_SIZE(dummy_supplies));
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 	imx_add_gpio_keys(&armadillo5x0_button_data);
@@ -517,10 +512,8 @@ static void __init armadillo5x0_init(void)
 	imx31_add_mx3_sdc_fb(&mx3fb_pdata);
 
 	/* Register NOR Flash */
-	platform_device_register_resndata(NULL, "physmap-flash", -1,
-			&armadillo5x0_nor_flash_resource, 1,
-			&armadillo5x0_nor_flash_pdata,
-			sizeof(armadillo5x0_nor_flash_pdata));
+	mxc_register_device(&armadillo5x0_nor_flash,
+			    &armadillo5x0_nor_flash_pdata);
 
 	/* Register NAND Flash */
 	imx31_add_mxc_nand(&armadillo5x0_nand_board_info);
@@ -563,12 +556,10 @@ static struct sys_timer armadillo5x0_timer = {
 
 MACHINE_START(ARMADILLO5X0, "Armadillo-500")
 	/* Maintainer: Alberto Panizzo  */
-	.atag_offset = 0x100,
+	.boot_params = MX3x_PHYS_OFFSET + 0x100,
 	.map_io = mx31_map_io,
 	.init_early = imx31_init_early,
 	.init_irq = mx31_init_irq,
-	.handle_irq = imx31_handle_irq,
 	.timer = &armadillo5x0_timer,
 	.init_machine = armadillo5x0_init,
-	.restart	= mxc_restart,
 MACHINE_END

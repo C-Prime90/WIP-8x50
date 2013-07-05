@@ -19,7 +19,6 @@
 #include <asm/bootx.h>
 #include <asm/btext.h>
 #include <asm/io.h>
-#include <asm/setup.h>
 
 #undef DEBUG
 #define SET_BOOT_BAT

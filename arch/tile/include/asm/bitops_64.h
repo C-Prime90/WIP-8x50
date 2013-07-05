@@ -16,7 +16,8 @@
 #define _ASM_TILE_BITOPS_64_H
 
 #include <linux/compiler.h>
-#include <linux/atomic.h>
+#include <asm/atomic.h>
+#include <asm/system.h>
 
 /* See <asm/bitops.h> for API comments. */
 
@@ -38,10 +39,10 @@ static inline void clear_bit(unsigned nr, volatile unsigned long *addr)
 
 static inline void change_bit(unsigned nr, volatile unsigned long *addr)
 {
-	unsigned long mask = (1UL << (nr % BITS_PER_LONG));
-	unsigned long guess, oldval;
+	unsigned long old, mask = (1UL << (nr % BITS_PER_LONG));
+	long guess, oldval;
 	addr += nr / BITS_PER_LONG;
-	oldval = *addr;
+	old = *addr;
 	do {
 		guess = oldval;
 		oldval = atomic64_cmpxchg((atomic64_t *)addr,
@@ -85,7 +86,7 @@ static inline int test_and_change_bit(unsigned nr,
 				      volatile unsigned long *addr)
 {
 	unsigned long mask = (1UL << (nr % BITS_PER_LONG));
-	unsigned long guess, oldval;
+	long guess, oldval = *addr;
 	addr += nr / BITS_PER_LONG;
 	oldval = *addr;
 	do {
@@ -96,6 +97,9 @@ static inline int test_and_change_bit(unsigned nr,
 	return (oldval & mask) != 0;
 }
 
-#include <asm-generic/bitops/ext2-atomic-setbit.h>
+#define ext2_set_bit_atomic(lock, nr, addr)			\
+	test_and_set_bit((nr), (unsigned long *)(addr))
+#define ext2_clear_bit_atomic(lock, nr, addr)			\
+	test_and_clear_bit((nr), (unsigned long *)(addr))
 
 #endif /* _ASM_TILE_BITOPS_64_H */

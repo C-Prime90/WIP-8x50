@@ -17,6 +17,7 @@
 #include <asm/bootinfo.h>
 #include <asm/mmu_context.h>
 #include <asm/pgtable.h>
+#include <asm/system.h>
 
 extern void build_tlb_refill_handler(void);
 

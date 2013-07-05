@@ -3,8 +3,7 @@
 
 #include <linux/kernel.h>
 #include <linux/preempt.h>
-#include <linux/atomic.h>
-#include <linux/bug.h>
+#include <asm/atomic.h>
 
 /*
  *  bit-based spin_lock()
@@ -89,7 +88,7 @@ static inline int bit_spin_is_locked(int bitnum, unsigned long *addr)
 {
 #if defined(CONFIG_SMP) || defined(CONFIG_DEBUG_SPINLOCK)
 	return test_bit(bitnum, addr);
-#elif defined CONFIG_PREEMPT_COUNT
+#elif defined CONFIG_PREEMPT
 	return preempt_count();
 #else
 	return 1;

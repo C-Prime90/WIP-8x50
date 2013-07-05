@@ -5699,7 +5699,7 @@ int ocfs2_remove_btree_range(struct inode *inode,
 					   OCFS2_JOURNAL_ACCESS_WRITE);
 	if (ret) {
 		mlog_errno(ret);
-		goto out_commit;
+		goto out;
 	}
 
 	dquot_free_space_nodirty(inode,

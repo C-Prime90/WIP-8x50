@@ -43,7 +43,7 @@
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 
-#include <linux/atomic.h>
+#include <asm/atomic.h>
 
 #include <linux/fsnotify_backend.h>
 #include "fsnotify.h"
@@ -447,7 +447,7 @@ struct fsnotify_event *fsnotify_create_event(struct inode *to_tell, __u32 mask, 
 	return event;
 }
 
-static __init int fsnotify_notification_init(void)
+__init int fsnotify_notification_init(void)
 {
 	fsnotify_event_cachep = KMEM_CACHE(fsnotify_event, SLAB_PANIC);
 	fsnotify_event_holder_cachep = KMEM_CACHE(fsnotify_event_holder, SLAB_PANIC);
@@ -461,3 +461,4 @@ static __init int fsnotify_notification_init(void)
 	return 0;
 }
 subsys_initcall(fsnotify_notification_init);
+

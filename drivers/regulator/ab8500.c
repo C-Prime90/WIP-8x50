@@ -13,11 +13,10 @@
  */
 #include <linux/init.h>
 #include <linux/kernel.h>
-#include <linux/module.h>
 #include <linux/err.h>
 #include <linux/platform_device.h>
+#include <linux/mfd/ab8500.h>
 #include <linux/mfd/abx500.h>
-#include <linux/mfd/abx500/ab8500.h>
 #include <linux/regulator/driver.h>
 #include <linux/regulator/machine.h>
 #include <linux/regulator/ab8500.h>
@@ -201,7 +200,7 @@ static int ab8500_list_voltage(struct regulator_dev *rdev, unsigned selector)
 	return info->voltages[selector];
 }
 
-static int ab8500_regulator_get_voltage_sel(struct regulator_dev *rdev)
+static int ab8500_regulator_get_voltage(struct regulator_dev *rdev)
 {
 	int ret, val;
 	struct ab8500_regulator_info *info = rdev_get_drvdata(rdev);
@@ -229,9 +228,11 @@ static int ab8500_regulator_get_voltage_sel(struct regulator_dev *rdev)
 	/* vintcore has a different layout */
 	val = regval & info->voltage_mask;
 	if (info->desc.id == AB8500_LDO_INTCORE)
-		return val >> 0x3;
+		ret = info->voltages[val >> 0x3];
 	else
-		return val;
+		ret = info->voltages[val];
+
+	return ret;
 }
 
 static int ab8500_get_best_voltage_index(struct regulator_dev *rdev,
@@ -318,7 +319,7 @@ static struct regulator_ops ab8500_regulator_ops = {
 	.enable		= ab8500_regulator_enable,
 	.disable	= ab8500_regulator_disable,
 	.is_enabled	= ab8500_regulator_is_enabled,
-	.get_voltage_sel = ab8500_regulator_get_voltage_sel,
+	.get_voltage	= ab8500_regulator_get_voltage,
 	.set_voltage	= ab8500_regulator_set_voltage,
 	.list_voltage	= ab8500_list_voltage,
 	.enable_time	= ab8500_regulator_enable_time,
@@ -820,7 +821,7 @@ static __devinit int ab8500_regulator_probe(struct platform_device *pdev)
 
 		/* register regulator with framework */
 		info->regulator = regulator_register(&info->desc, &pdev->dev,
-				&pdata->regulator[i], info, NULL);
+				&pdata->regulator[i], info);
 		if (IS_ERR(info->regulator)) {
 			err = PTR_ERR(info->regulator);
 			dev_err(&pdev->dev, "failed to register regulator %s\n",

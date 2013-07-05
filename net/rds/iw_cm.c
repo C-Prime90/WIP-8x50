@@ -34,7 +34,6 @@
 #include <linux/in.h>
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
-#include <linux/ratelimit.h>
 
 #include "rds.h"
 #include "iw.h"
@@ -259,7 +258,8 @@ static int rds_iw_setup_qp(struct rds_connection *conn)
 	 */
 	rds_iwdev = ib_get_client_data(dev, &rds_iw_client);
 	if (!rds_iwdev) {
-		printk_ratelimited(KERN_NOTICE "RDS/IW: No client_data for device %s\n",
+		if (printk_ratelimit())
+			printk(KERN_NOTICE "RDS/IW: No client_data for device %s\n",
 					dev->name);
 		return -EOPNOTSUPP;
 	}
@@ -365,12 +365,13 @@ static u32 rds_iw_protocol_compatible(const struct rds_iw_connect_private *dp)
 		version = RDS_PROTOCOL_3_0;
 		while ((common >>= 1) != 0)
 			version++;
-	}
-	printk_ratelimited(KERN_NOTICE "RDS: Connection from %pI4 using "
+	} else if (printk_ratelimit()) {
+		printk(KERN_NOTICE "RDS: Connection from %pI4 using "
 			"incompatible protocol version %u.%u\n",
 			&dp->dp_saddr,
 			dp->dp_protocol_major,
 			dp->dp_protocol_minor);
+	}
 	return version;
 }
 
@@ -694,7 +695,7 @@ int rds_iw_conn_alloc(struct rds_connection *conn, gfp_t gfp)
 	unsigned long flags;
 
 	/* XXX too lazy? */
-	ic = kzalloc(sizeof(struct rds_iw_connection), gfp);
+	ic = kzalloc(sizeof(struct rds_iw_connection), GFP_KERNEL);
 	if (!ic)
 		return -ENOMEM;
 

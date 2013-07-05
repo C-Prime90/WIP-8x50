@@ -15,6 +15,7 @@
 
 #include <linux/module.h>
 #include <asm/uaccess.h>
+#include <asm/system.h>
 #include <linux/bitops.h>
 #include <linux/capability.h>
 #include <linux/types.h>
@@ -694,7 +695,7 @@ void fib_add_ifaddr(struct in_ifaddr *ifa)
 	if (ifa->ifa_flags & IFA_F_SECONDARY) {
 		prim = inet_ifa_byprefix(in_dev, prefix, mask);
 		if (prim == NULL) {
-			pr_warn("%s: bug: prim == NULL\n", __func__);
+			printk(KERN_WARNING "fib_add_ifaddr: bug: prim == NULL\n");
 			return;
 		}
 	}
@@ -748,11 +749,11 @@ void fib_del_ifaddr(struct in_ifaddr *ifa, struct in_ifaddr *iprim)
 	if (ifa->ifa_flags & IFA_F_SECONDARY) {
 		prim = inet_ifa_byprefix(in_dev, any, ifa->ifa_mask);
 		if (prim == NULL) {
-			pr_warn("%s: bug: prim == NULL\n", __func__);
+			printk(KERN_WARNING "fib_del_ifaddr: bug: prim == NULL\n");
 			return;
 		}
 		if (iprim && iprim != prim) {
-			pr_warn("%s: bug: iprim != prim\n", __func__);
+			printk(KERN_WARNING "fib_del_ifaddr: bug: iprim != prim\n");
 			return;
 		}
 	} else if (!ipv4_is_zeronet(any) &&

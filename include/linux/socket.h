@@ -8,10 +8,8 @@
 #define _K_SS_ALIGNSIZE	(__alignof__ (struct sockaddr *))
 				/* Implementation specific desired alignment */
 
-typedef unsigned short __kernel_sa_family_t;
-
 struct __kernel_sockaddr_storage {
-	__kernel_sa_family_t	ss_family;		/* address family */
+	unsigned short	ss_family;		/* address family */
 	/* Following field(s) are implementation specific */
 	char		__data[_K_SS_MAXSIZE - sizeof(unsigned short)];
 				/* space to achieve desired size, */
@@ -37,7 +35,7 @@ struct seq_file;
 extern void socket_seq_show(struct seq_file *seq);
 #endif
 
-typedef __kernel_sa_family_t	sa_family_t;
+typedef unsigned short	sa_family_t;
 
 /*
  *	1003.1g requires sa_family_t and that sa_data is char.
@@ -194,8 +192,7 @@ struct ucred {
 #define AF_IEEE802154	36	/* IEEE802154 sockets		*/
 #define AF_CAIF		37	/* CAIF sockets			*/
 #define AF_ALG		38	/* Algorithm sockets		*/
-#define AF_NFC		39	/* NFC sockets			*/
-#define AF_MAX		40	/* For now.. */
+#define AF_MAX		39	/* For now.. */
 
 /* Protocol families, same as address families. */
 #define PF_UNSPEC	AF_UNSPEC
@@ -237,7 +234,6 @@ struct ucred {
 #define PF_IEEE802154	AF_IEEE802154
 #define PF_CAIF		AF_CAIF
 #define PF_ALG		AF_ALG
-#define PF_NFC		AF_NFC
 #define PF_MAX		AF_MAX
 
 /* Maximum queue length specifiable by listen.  */
@@ -326,11 +322,11 @@ extern int csum_partial_copy_fromiovecend(unsigned char *kdata,
 					  int offset, 
 					  unsigned int len, __wsum *csump);
 
-extern int verify_iovec(struct msghdr *m, struct iovec *iov, struct sockaddr_storage *address, int mode);
+extern int verify_iovec(struct msghdr *m, struct iovec *iov, struct sockaddr *address, int mode);
 extern int memcpy_toiovec(struct iovec *v, unsigned char *kdata, int len);
 extern int memcpy_toiovecend(const struct iovec *v, unsigned char *kdata,
 			     int offset, int len);
-extern int move_addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr_storage *kaddr);
+extern int move_addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr *kaddr);
 extern int put_cmsg(struct msghdr*, int level, int type, int len, void *data);
 
 struct timespec;

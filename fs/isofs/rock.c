@@ -363,7 +363,7 @@ repeat:
 			break;
 		case SIG('P', 'X'):
 			inode->i_mode = isonum_733(rr->u.PX.mode);
-			set_nlink(inode, isonum_733(rr->u.PX.n_links));
+			inode->i_nlink = isonum_733(rr->u.PX.n_links);
 			inode->i_uid = isonum_733(rr->u.PX.uid);
 			inode->i_gid = isonum_733(rr->u.PX.gid);
 			break;
@@ -496,7 +496,7 @@ repeat:
 				goto out;
 			}
 			inode->i_mode = reloc->i_mode;
-			set_nlink(inode, reloc->i_nlink);
+			inode->i_nlink = reloc->i_nlink;
 			inode->i_uid = reloc->i_uid;
 			inode->i_gid = reloc->i_gid;
 			inode->i_rdev = reloc->i_rdev;
@@ -678,6 +678,7 @@ static int rock_ridge_symlink_readpage(struct file *file, struct page *page)
 
 	init_rock_state(&rs, inode);
 	block = ei->i_iget5_block;
+	mutex_lock(&sbi->s_mutex);
 	bh = sb_bread(inode->i_sb, block);
 	if (!bh)
 		goto out_noread;
@@ -747,6 +748,7 @@ repeat:
 		goto fail;
 	brelse(bh);
 	*rpnt = '\0';
+	mutex_unlock(&sbi->s_mutex);
 	SetPageUptodate(page);
 	kunmap(page);
 	unlock_page(page);
@@ -763,6 +765,7 @@ out_bad_span:
 	printk("symlink spans iso9660 blocks\n");
 fail:
 	brelse(bh);
+	mutex_unlock(&sbi->s_mutex);
 error:
 	SetPageError(page);
 	kunmap(page);

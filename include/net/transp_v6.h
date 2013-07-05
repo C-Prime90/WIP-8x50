@@ -11,8 +11,11 @@ extern struct proto rawv6_prot;
 extern struct proto udpv6_prot;
 extern struct proto udplitev6_prot;
 extern struct proto tcpv6_prot;
+extern struct proto pingv6_prot;
 
 struct flowi6;
+
+extern void initialize_hashidentrnd(void);
 
 /* extension headers */
 extern int				ipv6_exthdrs_init(void);
@@ -21,6 +24,8 @@ extern int				ipv6_frag_init(void);
 extern void				ipv6_frag_exit(void);
 
 /* transport protocols */
+extern int				pingv6_init(void);
+extern void				pingv6_exit(void);
 extern int				rawv6_init(void);
 extern void				rawv6_exit(void);
 extern int				udpv6_init(void);
@@ -39,7 +44,6 @@ extern int			datagram_recv_ctl(struct sock *sk,
 						  struct sk_buff *skb);
 
 extern int			datagram_send_ctl(struct net *net,
-						  struct sock *sk,
 						  struct msghdr *msg,
 						  struct flowi6 *fl6,
 						  struct ipv6_txoptions *opt,

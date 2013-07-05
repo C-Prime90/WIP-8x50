@@ -22,6 +22,7 @@
 #include <asm/page.h>
 #include <asm/pgtable.h>
 #include <asm/prefetch.h>
+#include <asm/system.h>
 #include <asm/bootinfo.h>
 #include <asm/mipsregs.h>
 #include <asm/mmu_context.h>

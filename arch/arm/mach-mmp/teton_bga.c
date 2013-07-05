@@ -26,7 +26,6 @@
 #include <mach/mfp-pxa168.h>
 #include <mach/pxa168.h>
 #include <mach/teton_bga.h>
-#include <mach/irqs.h>
 
 #include "common.h"
 
@@ -67,7 +66,7 @@ static struct pxa27x_keypad_platform_data teton_bga_keypad_info __initdata = {
 static struct i2c_board_info teton_bga_i2c_info[] __initdata = {
 	{
 		I2C_BOARD_INFO("ds1337", 0x68),
-		.irq = MMP_GPIO_TO_IRQ(RTC_INT_GPIO)
+		.irq = gpio_to_irq(RTC_INT_GPIO)
 	},
 };
 
@@ -79,14 +78,12 @@ static void __init teton_bga_init(void)
 	pxa168_add_uart(1);
 	pxa168_add_keypad(&teton_bga_keypad_info);
 	pxa168_add_twsi(0, NULL, ARRAY_AND_SIZE(teton_bga_i2c_info));
-	platform_device_register(&pxa168_device_gpio);
 }
 
 MACHINE_START(TETON_BGA, "PXA168-based Teton BGA Development Platform")
 	.map_io		= mmp_map_io,
-	.nr_irqs	= MMP_NR_IRQS,
+	.nr_irqs	= IRQ_BOARD_START,
 	.init_irq       = pxa168_init_irq,
 	.timer          = &pxa168_timer,
 	.init_machine   = teton_bga_init,
-	.restart	= pxa168_restart,
 MACHINE_END

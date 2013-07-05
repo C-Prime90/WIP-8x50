@@ -55,7 +55,7 @@
 #include <net/protocol.h>
 
 #include <asm/byteorder.h>
-#include <linux/atomic.h>
+#include <asm/atomic.h>
 
 #include "l2tp_core.h"
 
@@ -397,7 +397,6 @@ static void l2tp_recv_dequeue(struct l2tp_session *session)
 	 * expect to send up next, dequeue it and any other
 	 * in-sequence packets behind it.
 	 */
-start:
 	spin_lock_bh(&session->reorder_q.lock);
 	skb_queue_walk_safe(&session->reorder_q, skb, tmp) {
 		if (time_after(jiffies, L2TP_SKB_CB(skb)->expires)) {
@@ -434,7 +433,7 @@ start:
 		 */
 		spin_unlock_bh(&session->reorder_q.lock);
 		l2tp_recv_dequeue_skb(session, skb);
-		goto start;
+		spin_lock_bh(&session->reorder_q.lock);
 	}
 
 out:
@@ -756,6 +755,9 @@ static int l2tp_udp_recv_core(struct l2tp_tunnel *tunnel, struct sk_buff *skb,
 		goto error;
 	}
 
+	/* Point to L2TP header */
+	optr = ptr = skb->data;
+
 	/* Trace packet contents, if enabled */
 	if (tunnel->debug & L2TP_MSG_DATA) {
 		length = min(32u, skb->len);
@@ -766,14 +768,11 @@ static int l2tp_udp_recv_core(struct l2tp_tunnel *tunnel, struct sk_buff *skb,
 
 		offset = 0;
 		do {
-			printk(" %02X", skb->data[offset]);
+			printk(" %02X", ptr[offset]);
 		} while (++offset < length);
 
 		printk("\n");
 	}
-
-	/* Point to L2TP header */
-	optr = ptr = skb->data;
 
 	/* Get L2TP header flags */
 	hdrflags = ntohs(*(__be16 *) ptr);
@@ -1072,7 +1071,7 @@ int l2tp_xmit_skb(struct l2tp_session *session, struct sk_buff *skb, int hdr_len
 
 	/* Get routing info from the tunnel socket */
 	skb_dst_drop(skb);
-	skb_dst_set(skb, dst_clone(__sk_dst_check(sk, 0)));
+	skb_dst_set(skb, dst_clone(__sk_dst_get(sk)));
 
 	inet = inet_sk(sk);
 	fl = &inet->cork.fl;

@@ -15,9 +15,10 @@
 #include <linux/interrupt.h>
 
 #include <asm/processor.h>
+#include <asm/system.h>
 #include <asm/uaccess.h>
 #include <asm/io.h>
-#include <linux/atomic.h>
+#include <asm/atomic.h>
 #include <asm/smp.h>
 #include <asm/pgalloc.h>
 #include <asm/busctl-regs.h>

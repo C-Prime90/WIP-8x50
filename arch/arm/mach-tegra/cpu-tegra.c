@@ -30,7 +30,9 @@
 #include <linux/io.h>
 #include <linux/suspend.h>
 
+#include <asm/system.h>
 
+#include <mach/hardware.h>
 #include <mach/clk.h>
 
 /* Frequency table index must be sequential starting at 0 */
@@ -55,12 +57,12 @@ static unsigned long target_cpu_speed[NUM_CPUS];
 static DEFINE_MUTEX(tegra_cpu_lock);
 static bool is_suspended;
 
-static int tegra_verify_speed(struct cpufreq_policy *policy)
+int tegra_verify_speed(struct cpufreq_policy *policy)
 {
 	return cpufreq_frequency_table_verify(policy, freq_table);
 }
 
-static unsigned int tegra_getspeed(unsigned int cpu)
+unsigned int tegra_getspeed(unsigned int cpu)
 {
 	unsigned long rate;
 
@@ -128,7 +130,7 @@ static int tegra_target(struct cpufreq_policy *policy,
 		       unsigned int target_freq,
 		       unsigned int relation)
 {
-	unsigned int idx;
+	int idx;
 	unsigned int freq;
 	int ret = 0;
 

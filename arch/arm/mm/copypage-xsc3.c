@@ -75,12 +75,12 @@ void xsc3_mc_copy_user_highpage(struct page *to, struct page *from,
 {
 	void *kto, *kfrom;
 
-	kto = kmap_atomic(to);
-	kfrom = kmap_atomic(from);
+	kto = kmap_atomic(to, KM_USER0);
+	kfrom = kmap_atomic(from, KM_USER1);
 	flush_cache_page(vma, vaddr, page_to_pfn(from));
 	xsc3_mc_copy_user_page(kto, kfrom);
-	kunmap_atomic(kfrom);
-	kunmap_atomic(kto);
+	kunmap_atomic(kfrom, KM_USER1);
+	kunmap_atomic(kto, KM_USER0);
 }
 
 /*
@@ -90,7 +90,7 @@ void xsc3_mc_copy_user_highpage(struct page *to, struct page *from,
  */
 void xsc3_mc_clear_user_highpage(struct page *page, unsigned long vaddr)
 {
-	void *ptr, *kaddr = kmap_atomic(page);
+	void *ptr, *kaddr = kmap_atomic(page, KM_USER0);
 	asm volatile ("\
 	mov	r1, %2				\n\
 	mov	r2, #0				\n\
@@ -105,7 +105,7 @@ void xsc3_mc_clear_user_highpage(struct page *page, unsigned long vaddr)
 	: "=r" (ptr)
 	: "0" (kaddr), "I" (PAGE_SIZE / 32)
 	: "r1", "r2", "r3");
-	kunmap_atomic(kaddr);
+	kunmap_atomic(kaddr, KM_USER0);
 }
 
 struct cpu_user_fns xsc3_mc_user_fns __initdata = {

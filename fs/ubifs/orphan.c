@@ -929,7 +929,7 @@ static int dbg_check_orphans(struct ubifs_info *c)
 	struct check_info ci;
 	int err;
 
-	if (!dbg_is_chk_orph(c))
+	if (!(ubifs_chk_flags & UBIFS_CHK_ORPH))
 		return 0;
 
 	ci.last_ino = 0;

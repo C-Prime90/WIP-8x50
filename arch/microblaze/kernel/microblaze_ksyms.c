@@ -18,6 +18,7 @@
 #include <asm/cacheflush.h>
 #include <linux/io.h>
 #include <asm/page.h>
+#include <asm/system.h>
 #include <linux/ftrace.h>
 #include <linux/uaccess.h>
 

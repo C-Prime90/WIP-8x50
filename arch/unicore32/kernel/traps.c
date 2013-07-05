@@ -26,6 +26,7 @@
 #include <linux/unistd.h>
 
 #include <asm/cacheflush.h>
+#include <asm/system.h>
 #include <asm/traps.h>
 
 #include "setup.h"

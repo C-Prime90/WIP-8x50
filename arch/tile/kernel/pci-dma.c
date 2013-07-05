@@ -15,7 +15,6 @@
 #include <linux/mm.h>
 #include <linux/dma-mapping.h>
 #include <linux/vmalloc.h>
-#include <linux/export.h>
 #include <asm/tlbflush.h>
 #include <asm/homecache.h>
 

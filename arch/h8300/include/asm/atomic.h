@@ -2,7 +2,6 @@
 #define __ARCH_H8300_ATOMIC__
 
 #include <linux/types.h>
-#include <asm/cmpxchg.h>
 
 /*
  * Atomic operations that C can't guarantee us.  Useful for
@@ -14,6 +13,7 @@
 #define atomic_read(v)		(*(volatile int *)&(v)->counter)
 #define atomic_set(v, i)	(((v)->counter) = i)
 
+#include <asm/system.h>
 #include <linux/kernel.h>
 
 static __inline__ int atomic_add_return(int i, atomic_t *v)
@@ -102,7 +102,9 @@ static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
 	return ret;
 }
 
-static inline int __atomic_add_unless(atomic_t *v, int a, int u)
+#define atomic_xchg(v, new) (xchg(&((v)->counter), new))
+
+static inline int atomic_add_unless(atomic_t *v, int a, int u)
 {
 	int ret;
 	unsigned long flags;
@@ -112,8 +114,9 @@ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 	if (ret != u)
 		v->counter += a;
 	local_irq_restore(flags);
-	return ret;
+	return ret != u;
 }
+#define atomic_inc_not_zero(v) atomic_add_unless((v), 1, 0)
 
 static __inline__ void atomic_clear_mask(unsigned long mask, unsigned long *v)
 {
@@ -143,4 +146,5 @@ static __inline__ void atomic_set_mask(unsigned long mask, unsigned long *v)
 #define smp_mb__before_atomic_inc()    barrier()
 #define smp_mb__after_atomic_inc() barrier()
 
+#include <asm-generic/atomic-long.h>
 #endif /* __ARCH_H8300_ATOMIC __ */

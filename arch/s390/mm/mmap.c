@@ -26,7 +26,6 @@
 
 #include <linux/personality.h>
 #include <linux/mm.h>
-#include <linux/mman.h>
 #include <linux/module.h>
 #include <linux/random.h>
 #include <linux/compat.h>
@@ -100,20 +99,15 @@ void arch_pick_mmap_layout(struct mm_struct *mm)
 		mm->unmap_area = arch_unmap_area_topdown;
 	}
 }
+EXPORT_SYMBOL_GPL(arch_pick_mmap_layout);
 
 #else
 
 int s390_mmap_check(unsigned long addr, unsigned long len)
 {
-	int rc;
-
 	if (!is_compat_task() &&
-	    len >= TASK_SIZE && TASK_SIZE < (1UL << 53)) {
-		rc = crst_table_upgrade(current->mm, 1UL << 53);
-		if (rc)
-			return rc;
-		update_mm(current->mm, current);
-	}
+	    len >= TASK_SIZE && TASK_SIZE < (1UL << 53))
+		return crst_table_upgrade(current->mm, 1UL << 53);
 	return 0;
 }
 
@@ -133,7 +127,6 @@ s390_get_unmapped_area(struct file *filp, unsigned long addr,
 		rc = crst_table_upgrade(mm, 1UL << 53);
 		if (rc)
 			return (unsigned long) rc;
-		update_mm(mm, current);
 		area = arch_get_unmapped_area(filp, addr, len, pgoff, flags);
 	}
 	return area;
@@ -156,7 +149,6 @@ s390_get_unmapped_area_topdown(struct file *filp, const unsigned long addr,
 		rc = crst_table_upgrade(mm, 1UL << 53);
 		if (rc)
 			return (unsigned long) rc;
-		update_mm(mm, current);
 		area = arch_get_unmapped_area_topdown(filp, addr, len,
 						      pgoff, flags);
 	}
@@ -182,5 +174,6 @@ void arch_pick_mmap_layout(struct mm_struct *mm)
 		mm->unmap_area = arch_unmap_area_topdown;
 	}
 }
+EXPORT_SYMBOL_GPL(arch_pick_mmap_layout);
 
 #endif

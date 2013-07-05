@@ -1,5 +1,3 @@
-#define pr_fmt(fmt) "IPsec: " fmt
-
 #include <crypto/aead.h>
 #include <crypto/authenc.h>
 #include <linux/err.h>
@@ -702,11 +700,11 @@ static const struct net_protocol esp4_protocol = {
 static int __init esp4_init(void)
 {
 	if (xfrm_register_type(&esp_type, AF_INET) < 0) {
-		pr_info("%s: can't add xfrm type\n", __func__);
+		printk(KERN_INFO "ip esp init: can't add xfrm type\n");
 		return -EAGAIN;
 	}
 	if (inet_add_protocol(&esp4_protocol, IPPROTO_ESP) < 0) {
-		pr_info("%s: can't add protocol\n", __func__);
+		printk(KERN_INFO "ip esp init: can't add protocol\n");
 		xfrm_unregister_type(&esp_type, AF_INET);
 		return -EAGAIN;
 	}
@@ -716,9 +714,9 @@ static int __init esp4_init(void)
 static void __exit esp4_fini(void)
 {
 	if (inet_del_protocol(&esp4_protocol, IPPROTO_ESP) < 0)
-		pr_info("%s: can't remove protocol\n", __func__);
+		printk(KERN_INFO "ip esp close: can't remove protocol\n");
 	if (xfrm_unregister_type(&esp_type, AF_INET) < 0)
-		pr_info("%s: can't remove xfrm type\n", __func__);
+		printk(KERN_INFO "ip esp close: can't remove xfrm type\n");
 }
 
 module_init(esp4_init);

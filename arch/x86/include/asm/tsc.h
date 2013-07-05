@@ -51,7 +51,9 @@ extern int unsynchronized_tsc(void);
 extern int check_tsc_unstable(void);
 extern unsigned long native_calibrate_tsc(void);
 
-extern int tsc_clocksource_reliable;
+#ifdef CONFIG_X86_64
+extern cycles_t vread_tsc(void);
+#endif
 
 /*
  * Boot-time check whether the TSCs are synchronized across
@@ -61,7 +63,7 @@ extern void check_tsc_sync_source(int cpu);
 extern void check_tsc_sync_target(void);
 
 extern int notsc_setup(char *);
-extern void tsc_save_sched_clock_state(void);
-extern void tsc_restore_sched_clock_state(void);
+extern void save_sched_clock_state(void);
+extern void restore_sched_clock_state(void);
 
 #endif /* _ASM_X86_TSC_H */

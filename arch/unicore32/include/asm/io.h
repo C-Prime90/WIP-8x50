@@ -16,6 +16,7 @@
 
 #include <asm/byteorder.h>
 #include <asm/memory.h>
+#include <asm/system.h>
 
 #define PCI_IOBASE	PKUNITY_PCILIO_BASE
 #include <asm-generic/io.h>
@@ -31,13 +32,19 @@ extern void __uc32_iounmap(volatile void __iomem *addr);
  * ioremap and friends.
  *
  * ioremap takes a PCI memory address, as specified in
- * Documentation/io-mapping.txt.
+ * Documentation/IO-mapping.txt.
  *
  */
 #define ioremap(cookie, size)		__uc32_ioremap(cookie, size)
 #define ioremap_cached(cookie, size)	__uc32_ioremap_cached(cookie, size)
-#define ioremap_nocache(cookie, size)	__uc32_ioremap(cookie, size)
 #define iounmap(cookie)			__uc32_iounmap(cookie)
+
+/*
+ * Convert a physical pointer to a virtual kernel pointer for /dev/mem
+ * access
+ */
+#undef xlate_dev_mem_ptr
+#define xlate_dev_mem_ptr(p)	__va(p)
 
 #define HAVE_ARCH_PIO_SIZE
 #define PIO_OFFSET		(unsigned int)(PCI_IOBASE)

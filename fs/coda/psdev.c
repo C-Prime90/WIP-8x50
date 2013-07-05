@@ -38,6 +38,7 @@
 #include <linux/mutex.h>
 #include <linux/device.h>
 #include <asm/io.h>
+#include <asm/system.h>
 #include <asm/poll.h>
 #include <asm/uaccess.h>
 

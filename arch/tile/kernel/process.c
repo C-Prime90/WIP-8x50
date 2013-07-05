@@ -27,18 +27,16 @@
 #include <linux/kernel.h>
 #include <linux/tracehook.h>
 #include <linux/signal.h>
+#include <asm/system.h>
 #include <asm/stack.h>
-#include <asm/switch_to.h>
 #include <asm/homecache.h>
 #include <asm/syscalls.h>
 #include <asm/traps.h>
-#include <asm/setup.h>
 #ifdef CONFIG_HARDWALL
 #include <asm/hardwall.h>
 #endif
 #include <arch/chip.h>
 #include <arch/abi.h>
-#include <arch/sim_def.h>
 
 
 /*
@@ -87,8 +85,7 @@ void cpu_idle(void)
 
 	/* endless idle loop with no priority at all */
 	while (1) {
-		tick_nohz_idle_enter();
-		rcu_idle_enter();
+		tick_nohz_stop_sched_tick(1);
 		while (!need_resched()) {
 			if (cpu_is_offline(cpu))
 				BUG();  /* no HOTPLUG_CPU */
@@ -108,9 +105,10 @@ void cpu_idle(void)
 				local_irq_enable();
 			current_thread_info()->status |= TS_POLLING;
 		}
-		rcu_idle_exit();
-		tick_nohz_idle_exit();
-		schedule_preempt_disabled();
+		tick_nohz_restart_sched_tick();
+		preempt_enable_no_resched();
+		schedule();
+		preempt_disable();
 	}
 }
 
@@ -286,7 +284,7 @@ struct task_struct *validate_current(void)
 	static struct task_struct corrupt = { .comm = "<corrupt>" };
 	struct task_struct *tsk = current;
 	if (unlikely((unsigned long)tsk < PAGE_OFFSET ||
-		     (high_memory && (void *)tsk > high_memory) ||
+		     (void *)tsk > high_memory ||
 		     ((unsigned long)tsk & (__alignof__(*tsk) - 1)) != 0)) {
 		pr_err("Corrupt 'current' %p (sp %#lx)\n", tsk, stack_pointer);
 		tsk = &corrupt;
@@ -567,10 +565,6 @@ struct task_struct *__sched _switch_to(struct task_struct *prev,
  */
 int do_work_pending(struct pt_regs *regs, u32 thread_info_flags)
 {
-	/* If we enter in kernel mode, do nothing and exit the caller loop. */
-	if (!user_mode(regs))
-		return 0;
-
 	if (thread_info_flags & _TIF_NEED_RESCHED) {
 		schedule();
 		return 1;
@@ -593,7 +587,8 @@ int do_work_pending(struct pt_regs *regs, u32 thread_info_flags)
 		return 1;
 	}
 	if (thread_info_flags & _TIF_SINGLESTEP) {
-		single_step_once(regs);
+		if ((regs->ex1 & SPR_EX_CONTEXT_1_1__PL_MASK) == 0)
+			single_step_once(regs);
 		return 0;
 	}
 	panic("work_pending: bad flags %#x\n", thread_info_flags);

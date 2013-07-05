@@ -29,6 +29,7 @@
 #include <asm/io.h>
 #include <asm/uaccess.h>
 #include <asm/pgtable.h>
+#include <asm/system.h>
 #include <asm/processor.h>
 #include <asm/mmu_context.h>
 

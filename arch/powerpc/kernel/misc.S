@@ -5,6 +5,7 @@
  * Largely rewritten by Cort Dougan (cort@cs.nmt.edu)
  * and Paul Mackerras.
  *
+ * Adapted for iSeries by Mike Corrigan (mikejc@us.ibm.com)
  * PPC64 updates by Dave Engebretsen (engebret@us.ibm.com)
  *
  * setjmp/longjmp code by Paul Mackerras.

@@ -22,6 +22,7 @@
 #include <linux/vmalloc.h>
 #include <linux/gfp.h>
 
+#include <asm/system.h>
 #include <asm/uaccess.h>
 #include <asm/pgtable.h>
 #include <asm/pgalloc.h>
@@ -30,7 +31,6 @@
 #include <asm/mmu_context.h>
 #include <asm/console.h>
 #include <asm/tlb.h>
-#include <asm/setup.h>
 
 extern void die_if_kernel(char *,struct pt_regs *,long);
 

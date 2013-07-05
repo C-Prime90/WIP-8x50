@@ -8,12 +8,11 @@
 #include <linux/seq_file.h>
 #include <linux/uaccess.h>
 #include <linux/fs.h>
-#include <linux/module.h>
 #include <linux/debugfs.h>
 #include <linux/platform_device.h>
 
 #include <linux/mfd/abx500.h>
-#include <linux/mfd/abx500/ab8500.h>
+#include <linux/mfd/ab8500.h>
 
 static u32 debug_bank;
 static u32 debug_address;
@@ -420,13 +419,20 @@ static ssize_t ab8500_bank_write(struct file *file,
 	size_t count, loff_t *ppos)
 {
 	struct device *dev = ((struct seq_file *)(file->private_data))->private;
+	char buf[32];
+	int buf_size;
 	unsigned long user_bank;
 	int err;
 
 	/* Get userspace string and assure termination */
-	err = kstrtoul_from_user(user_buf, count, 0, &user_bank);
+	buf_size = min(count, (sizeof(buf) - 1));
+	if (copy_from_user(buf, user_buf, buf_size))
+		return -EFAULT;
+	buf[buf_size] = 0;
+
+	err = strict_strtoul(buf, 0, &user_bank);
 	if (err)
-		return err;
+		return -EINVAL;
 
 	if (user_bank >= AB8500_NUM_BANKS) {
 		dev_err(dev, "debugfs error input > number of banks\n");
@@ -435,7 +441,7 @@ static ssize_t ab8500_bank_write(struct file *file,
 
 	debug_bank = user_bank;
 
-	return count;
+	return buf_size;
 }
 
 static int ab8500_address_print(struct seq_file *s, void *p)
@@ -453,20 +459,26 @@ static ssize_t ab8500_address_write(struct file *file,
 	size_t count, loff_t *ppos)
 {
 	struct device *dev = ((struct seq_file *)(file->private_data))->private;
+	char buf[32];
+	int buf_size;
 	unsigned long user_address;
 	int err;
 
 	/* Get userspace string and assure termination */
-	err = kstrtoul_from_user(user_buf, count, 0, &user_address);
-	if (err)
-		return err;
+	buf_size = min(count, (sizeof(buf) - 1));
+	if (copy_from_user(buf, user_buf, buf_size))
+		return -EFAULT;
+	buf[buf_size] = 0;
 
+	err = strict_strtoul(buf, 0, &user_address);
+	if (err)
+		return -EINVAL;
 	if (user_address > 0xff) {
 		dev_err(dev, "debugfs error input > 0xff\n");
 		return -EINVAL;
 	}
 	debug_address = user_address;
-	return count;
+	return buf_size;
 }
 
 static int ab8500_val_print(struct seq_file *s, void *p)
@@ -497,14 +509,20 @@ static ssize_t ab8500_val_write(struct file *file,
 	size_t count, loff_t *ppos)
 {
 	struct device *dev = ((struct seq_file *)(file->private_data))->private;
+	char buf[32];
+	int buf_size;
 	unsigned long user_val;
 	int err;
 
 	/* Get userspace string and assure termination */
-	err = kstrtoul_from_user(user_buf, count, 0, &user_val);
-	if (err)
-		return err;
+	buf_size = min(count, (sizeof(buf)-1));
+	if (copy_from_user(buf, user_buf, buf_size))
+		return -EFAULT;
+	buf[buf_size] = 0;
 
+	err = strict_strtoul(buf, 0, &user_val);
+	if (err)
+		return -EINVAL;
 	if (user_val > 0xff) {
 		dev_err(dev, "debugfs error input > 0xff\n");
 		return -EINVAL;
@@ -516,7 +534,7 @@ static ssize_t ab8500_val_write(struct file *file,
 		return -EINVAL;
 	}
 
-	return count;
+	return buf_size;
 }
 
 static const struct file_operations ab8500_bank_fops = {

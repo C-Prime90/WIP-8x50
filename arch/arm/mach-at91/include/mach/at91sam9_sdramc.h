@@ -82,4 +82,10 @@
 #define			AT91_SDRAMC_MD_SDRAM		0
 #define			AT91_SDRAMC_MD_LOW_POWER_SDRAM	1
 
+/* Register access macros */
+#define at91_ramc_read(num, reg) \
+	at91_sys_read(AT91_SDRAMC##num + reg)
+#define at91_ramc_write(num, reg, value) \
+	at91_sys_write(AT91_SDRAMC##num + reg, value)
+
 #endif

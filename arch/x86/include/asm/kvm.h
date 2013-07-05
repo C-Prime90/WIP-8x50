@@ -321,8 +321,4 @@ struct kvm_xcrs {
 	__u64 padding[16];
 };
 
-/* definition of registers in kvm_run */
-struct kvm_sync_regs {
-};
-
 #endif /* _ASM_X86_KVM_H */

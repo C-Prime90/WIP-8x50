@@ -13,7 +13,6 @@
  *  published by the Free Software Foundation.
  */
 
-#include <linux/export.h>
 #include <linux/init.h>
 #include <linux/platform_device.h>
 #include <linux/interrupt.h>
@@ -180,7 +179,7 @@ static unsigned long balloon3_ac97_pin_config[] __initdata = {
 };
 
 static struct ucb1400_pdata vpac270_ucb1400_pdata = {
-	.irq		= PXA_GPIO_TO_IRQ(BALLOON3_GPIO_CODEC_IRQ),
+	.irq		= IRQ_GPIO(BALLOON3_GPIO_CODEC_IRQ),
 };
 
 
@@ -592,7 +591,7 @@ static void balloon3_nand_cmd_ctl(struct mtd_info *mtd, int cmd, unsigned int ct
 				BALLOON3_NAND_CONTROL_REG);
 		if (balloon3_ctl_set)
 			__raw_writel(balloon3_ctl_set,
-				BALLOON3_NAND_CONTROL_REG +
+				BALLOON3_NAND_CONTROL_REG |
 				BALLOON3_FPGA_SETnCLR);
 	}
 
@@ -609,7 +608,7 @@ static void balloon3_nand_select_chip(struct mtd_info *mtd, int chip)
 	__raw_writew(
 		BALLOON3_NAND_CONTROL_FLCE0 | BALLOON3_NAND_CONTROL_FLCE1 |
 		BALLOON3_NAND_CONTROL_FLCE2 | BALLOON3_NAND_CONTROL_FLCE3,
-		BALLOON3_NAND_CONTROL_REG + BALLOON3_FPGA_SETnCLR);
+		BALLOON3_NAND_CONTROL_REG | BALLOON3_FPGA_SETnCLR);
 
 	/* Deassert correct nCE line */
 	__raw_writew(BALLOON3_NAND_CONTROL_FLCE0 << chip,
@@ -627,7 +626,7 @@ static int balloon3_nand_probe(struct platform_device *pdev)
 	int ret;
 
 	__raw_writew(BALLOON3_NAND_CONTROL2_16BIT,
-		BALLOON3_NAND_CONTROL2_REG + BALLOON3_FPGA_SETnCLR);
+		BALLOON3_NAND_CONTROL2_REG | BALLOON3_FPGA_SETnCLR);
 
 	ver = __raw_readw(BALLOON3_FPGA_VER);
 	if (ver < 0x4f08)
@@ -650,7 +649,7 @@ static int balloon3_nand_probe(struct platform_device *pdev)
 		BALLOON3_NAND_CONTROL_FLCE0 | BALLOON3_NAND_CONTROL_FLCE1 |
 		BALLOON3_NAND_CONTROL_FLCE2 | BALLOON3_NAND_CONTROL_FLCE3 |
 		BALLOON3_NAND_CONTROL_FLWP,
-		BALLOON3_NAND_CONTROL_REG + BALLOON3_FPGA_SETnCLR);
+		BALLOON3_NAND_CONTROL_REG | BALLOON3_FPGA_SETnCLR);
 	return 0;
 
 err2:
@@ -808,7 +807,7 @@ static void __init balloon3_init(void)
 
 static struct map_desc balloon3_io_desc[] __initdata = {
 	{	/* CPLD/FPGA */
-		.virtual	= (unsigned long)BALLOON3_FPGA_VIRT,
+		.virtual	=  BALLOON3_FPGA_VIRT,
 		.pfn		= __phys_to_pfn(BALLOON3_FPGA_PHYS),
 		.length		= BALLOON3_FPGA_LENGTH,
 		.type		= MT_DEVICE,
@@ -826,9 +825,7 @@ MACHINE_START(BALLOON3, "Balloon3")
 	.map_io		= balloon3_map_io,
 	.nr_irqs	= BALLOON3_NR_IRQS,
 	.init_irq	= balloon3_init_irq,
-	.handle_irq	= pxa27x_handle_irq,
 	.timer		= &pxa_timer,
 	.init_machine	= balloon3_init,
-	.atag_offset	= 0x100,
-	.restart	= pxa_restart,
+	.boot_params	= PLAT_PHYS_OFFSET + 0x100,
 MACHINE_END

@@ -17,8 +17,9 @@
 #ifndef _ASM_TILE_SPINLOCK_32_H
 #define _ASM_TILE_SPINLOCK_32_H
 
-#include <linux/atomic.h>
+#include <asm/atomic.h>
 #include <asm/page.h>
+#include <asm/system.h>
 #include <linux/compiler.h>
 
 /*

@@ -15,7 +15,6 @@
 #include <linux/init.h>
 #include <linux/cpufreq.h>
 #include <linux/slab.h>
-#include <linux/io.h>
 
 #include <mach/pxa3xx-regs.h>
 

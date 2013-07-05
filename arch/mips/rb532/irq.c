@@ -42,6 +42,7 @@
 #include <asm/bootinfo.h>
 #include <asm/time.h>
 #include <asm/mipsregs.h>
+#include <asm/system.h>
 
 #include <asm/mach-rc32434/irq.h>
 #include <asm/mach-rc32434/gpio.h>

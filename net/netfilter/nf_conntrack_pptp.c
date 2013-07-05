@@ -364,7 +364,6 @@ pptp_inbound_pkt(struct sk_buff *skb,
 		break;
 
 	case PPTP_WAN_ERROR_NOTIFY:
-	case PPTP_SET_LINK_INFO:
 	case PPTP_ECHO_REQUEST:
 	case PPTP_ECHO_REPLY:
 		/* I don't have to explain these ;) */

@@ -3,7 +3,6 @@
 
 #include <linux/dn.h>
 #include <net/sock.h>
-#include <net/flow.h>
 #include <asm/byteorder.h>
 #include <asm/unaligned.h>
 

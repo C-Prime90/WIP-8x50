@@ -123,10 +123,11 @@ void ltq_enable_irq(struct irq_data *d)
 static unsigned int ltq_startup_eiu_irq(struct irq_data *d)
 {
 	int i;
+	int irq_nr = d->irq - INT_NUM_IRQ0;
 
 	ltq_enable_irq(d);
 	for (i = 0; i < MAX_EIU; i++) {
-		if (d->irq == ltq_eiu_irq[i]) {
+		if (irq_nr == ltq_eiu_irq[i]) {
 			/* low level - we should really handle set_type */
 			ltq_eiu_w32(ltq_eiu_r32(LTQ_EIU_EXIN_C) |
 				(0x6 << (i * 4)), LTQ_EIU_EXIN_C);
@@ -146,10 +147,11 @@ static unsigned int ltq_startup_eiu_irq(struct irq_data *d)
 static void ltq_shutdown_eiu_irq(struct irq_data *d)
 {
 	int i;
+	int irq_nr = d->irq - INT_NUM_IRQ0;
 
 	ltq_disable_irq(d);
 	for (i = 0; i < MAX_EIU; i++) {
-		if (d->irq == ltq_eiu_irq[i]) {
+		if (irq_nr == ltq_eiu_irq[i]) {
 			/* disable */
 			ltq_eiu_w32(ltq_eiu_r32(LTQ_EIU_EXIN_INEN) & ~(1 << i),
 				LTQ_EIU_EXIN_INEN);
@@ -240,6 +242,7 @@ out:
 
 static struct irqaction cascade = {
 	.handler = no_action,
+	.flags = IRQF_DISABLED,
 	.name = "cascade",
 };
 
@@ -248,28 +251,28 @@ void __init arch_init_irq(void)
 	int i;
 
 	if (insert_resource(&iomem_resource, &ltq_icu_resource) < 0)
-		panic("Failed to insert icu memory");
+		panic("Failed to insert icu memory\n");
 
 	if (request_mem_region(ltq_icu_resource.start,
 			resource_size(&ltq_icu_resource), "icu") < 0)
-		panic("Failed to request icu memory");
+		panic("Failed to request icu memory\n");
 
 	ltq_icu_membase = ioremap_nocache(ltq_icu_resource.start,
 				resource_size(&ltq_icu_resource));
 	if (!ltq_icu_membase)
-		panic("Failed to remap icu memory");
+		panic("Failed to remap icu memory\n");
 
 	if (insert_resource(&iomem_resource, &ltq_eiu_resource) < 0)
-		panic("Failed to insert eiu memory");
+		panic("Failed to insert eiu memory\n");
 
 	if (request_mem_region(ltq_eiu_resource.start,
 			resource_size(&ltq_eiu_resource), "eiu") < 0)
-		panic("Failed to request eiu memory");
+		panic("Failed to request eiu memory\n");
 
 	ltq_eiu_membase = ioremap_nocache(ltq_eiu_resource.start,
 				resource_size(&ltq_eiu_resource));
 	if (!ltq_eiu_membase)
-		panic("Failed to remap eiu memory");
+		panic("Failed to remap eiu memory\n");
 
 	/* make sure all irqs are turned off by default */
 	for (i = 0; i < 5; i++)

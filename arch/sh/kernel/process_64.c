@@ -30,7 +30,6 @@
 #include <asm/pgtable.h>
 #include <asm/mmu_context.h>
 #include <asm/fpu.h>
-#include <asm/switch_to.h>
 
 struct task_struct *last_task_used_math = NULL;
 
@@ -286,7 +285,7 @@ void show_regs(struct pt_regs *regs)
 /*
  * Create a kernel thread
  */
-__noreturn void kernel_thread_helper(void *arg, int (*fn)(void *))
+ATTRIB_NORET void kernel_thread_helper(void *arg, int (*fn)(void *))
 {
 	do_exit(fn(arg));
 }

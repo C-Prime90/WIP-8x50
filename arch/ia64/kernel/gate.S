@@ -11,9 +11,8 @@
 #include <asm/errno.h>
 #include <asm/asm-offsets.h>
 #include <asm/sigcontext.h>
+#include <asm/system.h>
 #include <asm/unistd.h>
-#include <asm/kregs.h>
-#include <asm/page.h>
 #include "paravirt_inst.h"
 
 /*

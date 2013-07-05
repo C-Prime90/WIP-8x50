@@ -301,6 +301,7 @@ static int afs_fill_super(struct super_block *sb,
 {
 	struct afs_super_info *as = sb->s_fs_info;
 	struct afs_fid fid;
+	struct dentry *root = NULL;
 	struct inode *inode = NULL;
 	int ret;
 
@@ -326,16 +327,18 @@ static int afs_fill_super(struct super_block *sb,
 		set_bit(AFS_VNODE_AUTOCELL, &AFS_FS_I(inode)->flags);
 
 	ret = -ENOMEM;
-	sb->s_root = d_make_root(inode);
-	if (!sb->s_root)
+	root = d_alloc_root(inode);
+	if (!root)
 		goto error;
 
 	sb->s_d_op = &afs_fs_dentry_operations;
+	sb->s_root = root;
 
 	_leave(" = 0");
 	return 0;
 
 error:
+	iput(inode);
 	_leave(" = %d", ret);
 	return ret;
 }
@@ -492,6 +495,7 @@ static void afs_i_callback(struct rcu_head *head)
 {
 	struct inode *inode = container_of(head, struct inode, i_rcu);
 	struct afs_vnode *vnode = AFS_FS_I(inode);
+	INIT_LIST_HEAD(&inode->i_dentry);
 	kmem_cache_free(afs_inode_cachep, vnode);
 }
 

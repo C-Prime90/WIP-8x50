@@ -26,12 +26,11 @@
  * MA 02111-1307 USA
  */
 #include <linux/linkage.h>
-
 #include <asm/assembler.h>
-
 #include <mach/hardware.h>
 
-#include "iomap.h"
+#include <mach/io.h>
+
 #include "sdrc.h"
 #include "cm2xxx_3xxx.h"
 

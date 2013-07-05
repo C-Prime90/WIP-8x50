@@ -25,6 +25,7 @@
 #include <net/protocol.h>
 #include <net/tcp.h>
 #include <net/udp.h>
+#include <asm/system.h>
 #include <linux/stat.h>
 #include <linux/proc_fs.h>
 
@@ -59,6 +60,9 @@ static int __used __init register_ip_vs_protocol(struct ip_vs_protocol *pp)
 	return 0;
 }
 
+#if defined(CONFIG_IP_VS_PROTO_TCP) || defined(CONFIG_IP_VS_PROTO_UDP) || \
+    defined(CONFIG_IP_VS_PROTO_SCTP) || defined(CONFIG_IP_VS_PROTO_AH) || \
+    defined(CONFIG_IP_VS_PROTO_ESP)
 /*
  *	register an ipvs protocols netns related data
  */
@@ -70,26 +74,21 @@ register_ip_vs_proto_netns(struct net *net, struct ip_vs_protocol *pp)
 	struct ip_vs_proto_data *pd =
 			kzalloc(sizeof(struct ip_vs_proto_data), GFP_ATOMIC);
 
-	if (!pd)
+	if (!pd) {
+		pr_err("%s(): no memory.\n", __func__);
 		return -ENOMEM;
-
+	}
 	pd->pp = pp;	/* For speed issues */
 	pd->next = ipvs->proto_data_table[hash];
 	ipvs->proto_data_table[hash] = pd;
 	atomic_set(&pd->appcnt, 0);	/* Init app counter */
 
-	if (pp->init_netns != NULL) {
-		int ret = pp->init_netns(net, pd);
-		if (ret) {
-			/* unlink an free proto data */
-			ipvs->proto_data_table[hash] = pd->next;
-			kfree(pd);
-			return ret;
-		}
-	}
+	if (pp->init_netns != NULL)
+		pp->init_netns(net, pd);
 
 	return 0;
 }
+#endif
 
 /*
  *	unregister an ipvs protocol
@@ -317,40 +316,27 @@ ip_vs_tcpudp_debug_packet(int af, struct ip_vs_protocol *pp,
 /*
  * per network name-space init
  */
-int __net_init ip_vs_protocol_net_init(struct net *net)
+int __net_init __ip_vs_protocol_init(struct net *net)
 {
-	int i, ret;
-	static struct ip_vs_protocol *protos[] = {
 #ifdef CONFIG_IP_VS_PROTO_TCP
-        &ip_vs_protocol_tcp,
+	register_ip_vs_proto_netns(net, &ip_vs_protocol_tcp);
 #endif
 #ifdef CONFIG_IP_VS_PROTO_UDP
-	&ip_vs_protocol_udp,
+	register_ip_vs_proto_netns(net, &ip_vs_protocol_udp);
 #endif
 #ifdef CONFIG_IP_VS_PROTO_SCTP
-	&ip_vs_protocol_sctp,
+	register_ip_vs_proto_netns(net, &ip_vs_protocol_sctp);
 #endif
 #ifdef CONFIG_IP_VS_PROTO_AH
-	&ip_vs_protocol_ah,
+	register_ip_vs_proto_netns(net, &ip_vs_protocol_ah);
 #endif
 #ifdef CONFIG_IP_VS_PROTO_ESP
-	&ip_vs_protocol_esp,
+	register_ip_vs_proto_netns(net, &ip_vs_protocol_esp);
 #endif
-	};
-
-	for (i = 0; i < ARRAY_SIZE(protos); i++) {
-		ret = register_ip_vs_proto_netns(net, protos[i]);
-		if (ret < 0)
-			goto cleanup;
-	}
 	return 0;
-
-cleanup:
-	ip_vs_protocol_net_cleanup(net);
-	return ret;
 }
 
-void __net_exit ip_vs_protocol_net_cleanup(struct net *net)
+void __net_exit __ip_vs_protocol_cleanup(struct net *net)
 {
 	struct netns_ipvs *ipvs = net_ipvs(net);
 	struct ip_vs_proto_data *pd;

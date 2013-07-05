@@ -12,6 +12,7 @@
 #include <linux/init.h>
 #include <linux/irq.h>
 #include <linux/interrupt.h>
+#include <asm/system.h>
 #include <asm/io.h>
 #include <mach/microdev.h>
 

@@ -14,6 +14,7 @@
 #include <asm/pgtable.h>
 #include <asm/mce.h>
 #include <asm/nmi.h>
+#include <asm/vsyscall.h>
 #include <asm/cacheflush.h>
 #include <asm/tlbflush.h>
 #include <asm/io.h>
@@ -249,6 +250,7 @@ static void __init_or_module add_nops(void *insns, unsigned int len)
 
 extern struct alt_instr __alt_instructions[], __alt_instructions_end[];
 extern s32 __smp_locks[], __smp_locks_end[];
+extern char __vsyscall_0;
 void *text_poke_early(void *addr, const void *opcode, size_t len);
 
 /* Replace instructions with better alternatives for this CPU type.
@@ -261,7 +263,6 @@ void __init_or_module apply_alternatives(struct alt_instr *start,
 					 struct alt_instr *end)
 {
 	struct alt_instr *a;
-	u8 *instr, *replacement;
 	u8 insnbuf[MAX_PATCH_LEN];
 
 	DPRINTK("%s: alt table %p -> %p\n", __func__, start, end);
@@ -275,23 +276,25 @@ void __init_or_module apply_alternatives(struct alt_instr *start,
 	 * order.
 	 */
 	for (a = start; a < end; a++) {
-		instr = (u8 *)&a->instr_offset + a->instr_offset;
-		replacement = (u8 *)&a->repl_offset + a->repl_offset;
+		u8 *instr = a->instr;
 		BUG_ON(a->replacementlen > a->instrlen);
 		BUG_ON(a->instrlen > sizeof(insnbuf));
 		BUG_ON(a->cpuid >= NCAPINTS*32);
 		if (!boot_cpu_has(a->cpuid))
 			continue;
-
-		memcpy(insnbuf, replacement, a->replacementlen);
-
-		/* 0xe8 is a relative jump; fix the offset. */
+#ifdef CONFIG_X86_64
+		/* vsyscall code is not mapped yet. resolve it manually. */
+		if (instr >= (u8 *)VSYSCALL_START && instr < (u8*)VSYSCALL_END) {
+			instr = __va(instr - (u8*)VSYSCALL_START + (u8*)__pa_symbol(&__vsyscall_0));
+			DPRINTK("%s: vsyscall fixup: %p => %p\n",
+				__func__, a->instr, instr);
+		}
+#endif
+		memcpy(insnbuf, a->replacement, a->replacementlen);
 		if (*insnbuf == 0xe8 && a->replacementlen == 5)
-		    *(s32 *)(insnbuf + 1) += replacement - instr;
-
+		    *(s32 *)(insnbuf + 1) += a->replacement - a->instr;
 		add_nops(insnbuf + a->replacementlen,
 			 a->instrlen - a->replacementlen);
-
 		text_poke_early(instr, insnbuf, a->instrlen);
 	}
 }
@@ -738,5 +741,5 @@ void __kprobes text_poke_smp_batch(struct text_poke_param *params, int n)
 
 	atomic_set(&stop_machine_first, 1);
 	wrote_text = 0;
-	__stop_machine(stop_machine_text_poke, (void *)&tpp, cpu_online_mask);
+	__stop_machine(stop_machine_text_poke, (void *)&tpp, NULL);
 }

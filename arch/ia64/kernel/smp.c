@@ -32,7 +32,7 @@
 #include <linux/bitops.h>
 #include <linux/kexec.h>
 
-#include <linux/atomic.h>
+#include <asm/atomic.h>
 #include <asm/current.h>
 #include <asm/delay.h>
 #include <asm/machvec.h>
@@ -44,6 +44,7 @@
 #include <asm/processor.h>
 #include <asm/ptrace.h>
 #include <asm/sal.h>
+#include <asm/system.h>
 #include <asm/tlbflush.h>
 #include <asm/unistd.h>
 #include <asm/mca.h>
@@ -76,7 +77,7 @@ stop_this_cpu(void)
 	/*
 	 * Remove this CPU:
 	 */
-	set_cpu_online(smp_processor_id(), false);
+	cpu_clear(smp_processor_id(), cpu_online_map);
 	max_xtp();
 	local_irq_disable();
 	cpu_halt();

@@ -9,8 +9,6 @@
  *
  */
 
-#define pr_fmt(fmt) "IPv4: " fmt
-
 #include <linux/capability.h>
 #include <linux/module.h>
 #include <linux/slab.h>
@@ -576,7 +574,7 @@ void ip_forward_options(struct sk_buff *skb)
 			ip_rt_get_source(&optptr[srrptr-1], skb, rt);
 			optptr[2] = srrptr+4;
 		} else if (net_ratelimit())
-			pr_crit("%s(): Argh! Destination lost!\n", __func__);
+			printk(KERN_CRIT "ip_forward(): Argh! Destination lost!\n");
 		if (opt->ts_needaddr) {
 			optptr = raw + opt->ts;
 			ip_rt_get_source(&optptr[optptr[2]-9], skb, rt);

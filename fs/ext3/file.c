@@ -18,8 +18,12 @@
  *	(jj@sunsite.ms.mff.cuni.cz)
  */
 
+#include <linux/time.h>
+#include <linux/fs.h>
+#include <linux/jbd.h>
 #include <linux/quotaops.h>
-#include "ext3.h"
+#include <linux/ext3_fs.h>
+#include <linux/ext3_jbd.h>
 #include "xattr.h"
 #include "acl.h"
 
@@ -67,6 +71,7 @@ const struct file_operations ext3_file_operations = {
 };
 
 const struct inode_operations ext3_file_inode_operations = {
+	.truncate	= ext3_truncate,
 	.setattr	= ext3_setattr,
 #ifdef CONFIG_EXT3_FS_XATTR
 	.setxattr	= generic_setxattr,
@@ -74,7 +79,7 @@ const struct inode_operations ext3_file_inode_operations = {
 	.listxattr	= ext3_listxattr,
 	.removexattr	= generic_removexattr,
 #endif
-	.get_acl	= ext3_get_acl,
+	.check_acl	= ext3_check_acl,
 	.fiemap		= ext3_fiemap,
 };
 

@@ -23,11 +23,8 @@
 #include <media/rc-map.h>
 
 extern int rc_core_debug;
-#define IR_dprintk(level, fmt, ...)				\
-do {								\
-	if (rc_core_debug >= level)				\
-		pr_debug("%s: " fmt, __func__, ##__VA_ARGS__);	\
-} while (0)
+#define IR_dprintk(level, fmt, arg...)	if (rc_core_debug >= level) \
+	printk(KERN_DEBUG "%s: " fmt , __func__, ## arg)
 
 enum rc_driver_type {
 	RC_DRIVER_SCANCODE = 0,	/* Driver or hardware generates a scancode */
@@ -120,7 +117,7 @@ struct rc_dev {
 	int				(*s_tx_carrier)(struct rc_dev *dev, u32 carrier);
 	int				(*s_tx_duty_cycle)(struct rc_dev *dev, u32 duty_cycle);
 	int				(*s_rx_carrier_range)(struct rc_dev *dev, u32 min, u32 max);
-	int				(*tx_ir)(struct rc_dev *dev, unsigned *txbuf, unsigned n);
+	int				(*tx_ir)(struct rc_dev *dev, int *txbuf, u32 n);
 	void				(*s_idle)(struct rc_dev *dev, bool enable);
 	int				(*s_learning_mode)(struct rc_dev *dev, int enable);
 	int				(*s_carrier_report) (struct rc_dev *dev, int enable);

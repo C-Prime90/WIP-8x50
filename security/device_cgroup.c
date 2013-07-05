@@ -61,13 +61,12 @@ static inline struct dev_cgroup *task_devcgroup(struct task_struct *task)
 
 struct cgroup_subsys devices_subsys;
 
-static int devcgroup_can_attach(struct cgroup *new_cgrp,
-				struct cgroup_taskset *set)
+static int devcgroup_can_attach(struct cgroup_subsys *ss,
+		struct cgroup *new_cgroup, struct task_struct *task)
 {
-	struct task_struct *task = cgroup_taskset_first(set);
-
 	if (current != task && !capable(CAP_SYS_ADMIN))
-		return -EPERM;
+			return -EPERM;
+
 	return 0;
 }
 
@@ -126,6 +125,14 @@ static int dev_whitelist_add(struct dev_cgroup *dev_cgroup,
 	return 0;
 }
 
+static void whitelist_item_free(struct rcu_head *rcu)
+{
+	struct dev_whitelist_item *item;
+
+	item = container_of(rcu, struct dev_whitelist_item, rcu);
+	kfree(item);
+}
+
 /*
  * called under devcgroup_mutex
  */
@@ -148,7 +155,7 @@ remove:
 		walk->access &= ~wh->access;
 		if (!walk->access) {
 			list_del_rcu(&walk->list);
-			kfree_rcu(walk, rcu);
+			call_rcu(&walk->rcu, whitelist_item_free);
 		}
 	}
 }
@@ -156,7 +163,8 @@ remove:
 /*
  * called from kernel/cgroup.c with cgroup_lock() held.
  */
-static struct cgroup_subsys_state *devcgroup_create(struct cgroup *cgroup)
+static struct cgroup_subsys_state *devcgroup_create(struct cgroup_subsys *ss,
+						struct cgroup *cgroup)
 {
 	struct dev_cgroup *dev_cgroup, *parent_dev_cgroup;
 	struct cgroup *parent_cgroup;
@@ -194,7 +202,8 @@ static struct cgroup_subsys_state *devcgroup_create(struct cgroup *cgroup)
 	return &dev_cgroup->css;
 }
 
-static void devcgroup_destroy(struct cgroup *cgroup)
+static void devcgroup_destroy(struct cgroup_subsys *ss,
+			struct cgroup *cgroup)
 {
 	struct dev_cgroup *dev_cgroup;
 	struct dev_whitelist_item *wh, *tmp;

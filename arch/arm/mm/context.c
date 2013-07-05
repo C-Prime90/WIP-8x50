@@ -16,51 +16,29 @@
 #include <asm/mmu_context.h>
 #include <asm/tlbflush.h>
 
-static DEFINE_RAW_SPINLOCK(cpu_asid_lock);
+static DEFINE_SPINLOCK(cpu_asid_lock);
 unsigned int cpu_last_asid = ASID_FIRST_VERSION;
-
-#ifdef CONFIG_ARM_LPAE
-void cpu_set_reserved_ttbr0(void)
-{
-	unsigned long ttbl = __pa(swapper_pg_dir);
-	unsigned long ttbh = 0;
-
-	/*
-	 * Set TTBR0 to swapper_pg_dir which contains only global entries. The
-	 * ASID is set to 0.
-	 */
-	asm volatile(
-	"	mcrr	p15, 0, %0, %1, c2		@ set TTBR0\n"
-	:
-	: "r" (ttbl), "r" (ttbh));
-	isb();
-}
-#else
-void cpu_set_reserved_ttbr0(void)
-{
-	u32 ttb;
-	/* Copy TTBR1 into TTBR0 */
-	asm volatile(
-	"	mrc	p15, 0, %0, c2, c0, 1		@ read TTBR1\n"
-	"	mcr	p15, 0, %0, c2, c0, 0		@ set TTBR0\n"
-	: "=r" (ttb));
-	isb();
-}
+#ifdef CONFIG_SMP
+DEFINE_PER_CPU(struct mm_struct *, current_mm);
 #endif
 
 /*
  * We fork()ed a process, and we need a new context for the child
- * to run in.
+ * to run in.  We reserve version 0 for initial tasks so we will
+ * always allocate an ASID. The ASID 0 is reserved for the TTBR
+ * register changing sequence.
  */
 void __init_new_context(struct task_struct *tsk, struct mm_struct *mm)
 {
 	mm->context.id = 0;
-	raw_spin_lock_init(&mm->context.id_lock);
+	spin_lock_init(&mm->context.id_lock);
 }
 
 static void flush_context(void)
 {
-	cpu_set_reserved_ttbr0();
+	/* set the reserved ASID before flushing the TLB */
+	asm("mcr	p15, 0, %0, c13, c0, 1\n" : : "r" (0));
+	isb();
 	local_flush_tlb_all();
 	if (icache_is_vivt_asid_tagged()) {
 		__flush_icache_all();
@@ -80,7 +58,7 @@ static void set_mm_context(struct mm_struct *mm, unsigned int asid)
 	 * the broadcast. This function is also called via IPI so the
 	 * mm->context.id_lock has to be IRQ-safe.
 	 */
-	raw_spin_lock_irqsave(&mm->context.id_lock, flags);
+	spin_lock_irqsave(&mm->context.id_lock, flags);
 	if (likely((mm->context.id ^ cpu_last_asid) >> ASID_BITS)) {
 		/*
 		 * Old version of ASID found. Set the new one and
@@ -89,7 +67,7 @@ static void set_mm_context(struct mm_struct *mm, unsigned int asid)
 		mm->context.id = asid;
 		cpumask_clear(mm_cpumask(mm));
 	}
-	raw_spin_unlock_irqrestore(&mm->context.id_lock, flags);
+	spin_unlock_irqrestore(&mm->context.id_lock, flags);
 
 	/*
 	 * Set the mm_cpumask(mm) bit for the current CPU.
@@ -105,7 +83,14 @@ static void reset_context(void *info)
 {
 	unsigned int asid;
 	unsigned int cpu = smp_processor_id();
-	struct mm_struct *mm = current->active_mm;
+	struct mm_struct *mm = per_cpu(current_mm, cpu);
+
+	/*
+	 * Check if a current_mm was set on this CPU as it might still
+	 * be in the early booting stages and using the reserved ASID.
+	 */
+	if (!mm)
+		return;
 
 	smp_rmb();
 	asid = cpu_last_asid + cpu + 1;
@@ -114,7 +99,8 @@ static void reset_context(void *info)
 	set_mm_context(mm, asid);
 
 	/* set the new ASID */
-	cpu_switch_mm(mm->pgd, mm);
+	asm("mcr	p15, 0, %0, c13, c0, 1\n" : : "r" (mm->context.id));
+	isb();
 }
 
 #else
@@ -131,7 +117,7 @@ void __new_context(struct mm_struct *mm)
 {
 	unsigned int asid;
 
-	raw_spin_lock(&cpu_asid_lock);
+	spin_lock(&cpu_asid_lock);
 #ifdef CONFIG_SMP
 	/*
 	 * Check the ASID again, in case the change was broadcast from
@@ -139,7 +125,7 @@ void __new_context(struct mm_struct *mm)
 	 */
 	if (unlikely(((mm->context.id ^ cpu_last_asid) >> ASID_BITS) == 0)) {
 		cpumask_set_cpu(smp_processor_id(), mm_cpumask(mm));
-		raw_spin_unlock(&cpu_asid_lock);
+		spin_unlock(&cpu_asid_lock);
 		return;
 	}
 #endif
@@ -167,5 +153,5 @@ void __new_context(struct mm_struct *mm)
 	}
 
 	set_mm_context(mm, asid);
-	raw_spin_unlock(&cpu_asid_lock);
+	spin_unlock(&cpu_asid_lock);
 }

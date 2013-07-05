@@ -15,7 +15,7 @@
 
 #include <linux/compiler.h>
 #include <linux/types.h>
-#include <asm/cmpxchg.h>
+#include <asm/system.h>
 
 #define ATOMIC_INIT(i)  { (i) }
 
@@ -93,7 +93,7 @@ static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
 	return old;
 }
 
-static inline int __atomic_add_unless(atomic_t *v, int a, int u)
+static inline int atomic_add_unless(atomic_t *v, int a, int u)
 {
 	int c, old;
 	c = atomic_read(v);
@@ -105,9 +105,10 @@ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 			break;
 		c = old;
 	}
-	return c;
+	return c != u;
 }
 
+#define atomic_inc_not_zero(v) atomic_add_unless((v), 1, 0)
 
 #undef __CS_LOOP
 
@@ -330,5 +331,7 @@ static inline long long atomic64_dec_if_positive(atomic64_t *v)
 #define smp_mb__after_atomic_dec()	smp_mb()
 #define smp_mb__before_atomic_inc()	smp_mb()
 #define smp_mb__after_atomic_inc()	smp_mb()
+
+#include <asm-generic/atomic-long.h>
 
 #endif /* __ARCH_S390_ATOMIC__  */

@@ -9,6 +9,7 @@
 #include <linux/sched.h>
 
 #include <asm/addrspace.h>
+#include <asm/system.h>
 #include <asm/traps.h>
 #include <asm/branch.h>
 #include <asm/irq_regs.h>

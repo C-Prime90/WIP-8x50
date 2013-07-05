@@ -28,6 +28,7 @@
 #include <asm/auxio.h>
 #include <asm/oplib.h>
 #include <asm/uaccess.h>
+#include <asm/system.h>
 #include <asm/page.h>
 #include <asm/pgalloc.h>
 #include <asm/pgtable.h>
@@ -37,7 +38,6 @@
 #include <asm/elf.h>
 #include <asm/prom.h>
 #include <asm/unistd.h>
-#include <asm/setup.h>
 
 /* 
  * Power management idle function 
@@ -113,7 +113,9 @@ void cpu_idle(void)
 			while (!need_resched())
 				cpu_relax();
 		}
-		schedule_preempt_disabled();
+		preempt_enable_no_resched();
+		schedule();
+		preempt_disable();
 		check_pgt_cache();
 	}
 }
@@ -136,7 +138,9 @@ void cpu_idle(void)
 			while (!need_resched())
 				cpu_relax();
 		}
-		schedule_preempt_disabled();
+		preempt_enable_no_resched();
+		schedule();
+		preempt_disable();
 		check_pgt_cache();
 	}
 }
@@ -376,7 +380,8 @@ void flush_thread(void)
 #endif
 	}
 
-	/* This task is no longer a kernel thread. */
+	/* Now, this task is no longer a kernel thread. */
+	current->thread.current_ds = USER_DS;
 	if (current->thread.flags & SPARC_FLAG_KTHREAD) {
 		current->thread.flags &= ~SPARC_FLAG_KTHREAD;
 

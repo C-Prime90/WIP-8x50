@@ -59,6 +59,8 @@ static struct dentry *ufs_lookup(struct inode * dir, struct dentry *dentry, stru
 	if (ino)
 		inode = ufs_iget(dir->i_sb, ino);
 	unlock_ufs(dir->i_sb);
+	if (IS_ERR(inode))
+		return ERR_CAST(inode);
 	return d_splice_alias(inode, dentry);
 }
 
@@ -70,7 +72,7 @@ static struct dentry *ufs_lookup(struct inode * dir, struct dentry *dentry, stru
  * If the create succeeds, we fill in the inode information
  * with d_instantiate(). 
  */
-static int ufs_create (struct inode * dir, struct dentry * dentry, umode_t mode,
+static int ufs_create (struct inode * dir, struct dentry * dentry, int mode,
 		struct nameidata *nd)
 {
 	struct inode *inode;
@@ -94,7 +96,7 @@ static int ufs_create (struct inode * dir, struct dentry * dentry, umode_t mode,
 	return err;
 }
 
-static int ufs_mknod(struct inode *dir, struct dentry *dentry, umode_t mode, dev_t rdev)
+static int ufs_mknod (struct inode * dir, struct dentry *dentry, int mode, dev_t rdev)
 {
 	struct inode *inode;
 	int err;
@@ -166,6 +168,10 @@ static int ufs_link (struct dentry * old_dentry, struct inode * dir,
 	int error;
 
 	lock_ufs(dir->i_sb);
+	if (inode->i_nlink >= UFS_LINK_MAX) {
+		unlock_ufs(dir->i_sb);
+		return -EMLINK;
+	}
 
 	inode->i_ctime = CURRENT_TIME_SEC;
 	inode_inc_link_count(inode);
@@ -176,10 +182,13 @@ static int ufs_link (struct dentry * old_dentry, struct inode * dir,
 	return error;
 }
 
-static int ufs_mkdir(struct inode * dir, struct dentry * dentry, umode_t mode)
+static int ufs_mkdir(struct inode * dir, struct dentry * dentry, int mode)
 {
 	struct inode * inode;
-	int err;
+	int err = -EMLINK;
+
+	if (dir->i_nlink >= UFS_LINK_MAX)
+		goto out;
 
 	lock_ufs(dir->i_sb);
 	inode_inc_link_count(dir);
@@ -298,6 +307,11 @@ static int ufs_rename(struct inode *old_dir, struct dentry *old_dentry,
 			drop_nlink(new_inode);
 		inode_dec_link_count(new_inode);
 	} else {
+		if (dir_de) {
+			err = -EMLINK;
+			if (new_dir->i_nlink >= UFS_LINK_MAX)
+				goto out_dir;
+		}
 		err = ufs_add_link(new_dentry, old_inode);
 		if (err)
 			goto out_dir;

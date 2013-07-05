@@ -7,7 +7,7 @@
 #include <linux/uaccess.h>
 #include <linux/hardirq.h>
 #include <asm/unwinder.h>
-#include <asm/traps.h>
+#include <asm/system.h>
 
 #ifdef CONFIG_GENERIC_BUG
 static void handle_BUG(struct pt_regs *regs)

@@ -19,15 +19,6 @@
 
 #include <linux/ratelimit.h>
 
-char const *audit_point_name[] = {
-	"pre page fault",
-	"post page fault",
-	"pre pte write",
-	"post pte write",
-	"pre sync",
-	"post sync"
-};
-
 #define audit_printk(kvm, fmt, args...)		\
 	printk(KERN_ERR "audit: (%s) error: "	\
 		fmt, audit_point_name[kvm->arch.audit_point], ##args)
@@ -108,6 +99,18 @@ static void audit_mappings(struct kvm_vcpu *vcpu, u64 *sptep, int level)
 				     "level = %d\n", sp, level);
 			return;
 		}
+
+		if (*sptep == shadow_notrap_nonpresent_pte) {
+			audit_printk(vcpu->kvm, "notrap spte in unsync "
+				     "sp: %p\n", sp);
+			return;
+		}
+	}
+
+	if (sp->role.direct && *sptep == shadow_notrap_nonpresent_pte) {
+		audit_printk(vcpu->kvm, "notrap spte in direct sp: %p\n",
+			     sp);
+		return;
 	}
 
 	if (!is_shadow_present_pte(*sptep) || !is_last_spte(*sptep, level))
@@ -130,16 +133,16 @@ static void audit_mappings(struct kvm_vcpu *vcpu, u64 *sptep, int level)
 
 static void inspect_spte_has_rmap(struct kvm *kvm, u64 *sptep)
 {
-	static DEFINE_RATELIMIT_STATE(ratelimit_state, 5 * HZ, 10);
 	unsigned long *rmapp;
 	struct kvm_mmu_page *rev_sp;
 	gfn_t gfn;
+
 
 	rev_sp = page_header(__pa(sptep));
 	gfn = kvm_mmu_page_get_gfn(rev_sp, sptep - rev_sp->spt);
 
 	if (!gfn_to_memslot(kvm, gfn)) {
-		if (!__ratelimit(&ratelimit_state))
+		if (!printk_ratelimit())
 			return;
 		audit_printk(kvm, "no memslot for gfn %llx\n", gfn);
 		audit_printk(kvm, "index %ld of sp (gfn=%llx)\n",
@@ -150,7 +153,7 @@ static void inspect_spte_has_rmap(struct kvm *kvm, u64 *sptep)
 
 	rmapp = gfn_to_rmap(kvm, gfn, rev_sp->role.level);
 	if (!*rmapp) {
-		if (!__ratelimit(&ratelimit_state))
+		if (!printk_ratelimit())
 			return;
 		audit_printk(kvm, "no rmap for writable spte %llx\n",
 			     *sptep);
@@ -200,13 +203,13 @@ static void audit_write_protection(struct kvm *kvm, struct kvm_mmu_page *sp)
 	slot = gfn_to_memslot(kvm, sp->gfn);
 	rmapp = &slot->rmap[sp->gfn - slot->base_gfn];
 
-	spte = rmap_next(rmapp, NULL);
+	spte = rmap_next(kvm, rmapp, NULL);
 	while (spte) {
 		if (is_writable_pte(*spte))
 			audit_printk(kvm, "shadow page has writable "
 				     "mappings: gfn %llx role %x\n",
 				     sp->gfn, sp->role.word);
-		spte = rmap_next(rmapp, spte);
+		spte = rmap_next(kvm, rmapp, spte);
 	}
 }
 
@@ -233,10 +236,7 @@ static void audit_vcpu_spte(struct kvm_vcpu *vcpu)
 	mmu_spte_walk(vcpu, audit_spte);
 }
 
-static bool mmu_audit;
-static struct static_key mmu_audit_key;
-
-static void __kvm_mmu_audit(struct kvm_vcpu *vcpu, int point)
+static void kvm_mmu_audit(void *ignore, struct kvm_vcpu *vcpu, int point)
 {
 	static DEFINE_RATELIMIT_STATE(ratelimit_state, 5 * HZ, 10);
 
@@ -248,18 +248,18 @@ static void __kvm_mmu_audit(struct kvm_vcpu *vcpu, int point)
 	audit_vcpu_spte(vcpu);
 }
 
-static inline void kvm_mmu_audit(struct kvm_vcpu *vcpu, int point)
-{
-	if (static_key_false((&mmu_audit_key)))
-		__kvm_mmu_audit(vcpu, point);
-}
+static bool mmu_audit;
 
 static void mmu_audit_enable(void)
 {
+	int ret;
+
 	if (mmu_audit)
 		return;
 
-	static_key_slow_inc(&mmu_audit_key);
+	ret = register_trace_kvm_mmu_audit(kvm_mmu_audit, NULL);
+	WARN_ON(ret);
+
 	mmu_audit = true;
 }
 
@@ -268,7 +268,8 @@ static void mmu_audit_disable(void)
 	if (!mmu_audit)
 		return;
 
-	static_key_slow_dec(&mmu_audit_key);
+	unregister_trace_kvm_mmu_audit(kvm_mmu_audit, NULL);
+	tracepoint_synchronize_unregister();
 	mmu_audit = false;
 }
 

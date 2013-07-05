@@ -47,8 +47,6 @@
  */
 #define VGA_DEFAULT_DEVICE     (NULL)
 
-struct pci_dev;
-
 /* For use by clients */
 
 /**

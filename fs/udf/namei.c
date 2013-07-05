@@ -32,6 +32,8 @@
 #include <linux/crc-itu-t.h>
 #include <linux/exportfs.h>
 
+enum { UDF_MAX_LINKS = 0xffff };
+
 static inline int udf_match(int len1, const unsigned char *name1, int len2,
 			    const unsigned char *name2)
 {
@@ -550,7 +552,7 @@ static int udf_delete_entry(struct inode *inode, struct fileIdentDesc *fi,
 	return udf_write_fi(inode, cfi, fi, fibh, NULL, NULL);
 }
 
-static int udf_create(struct inode *dir, struct dentry *dentry, umode_t mode,
+static int udf_create(struct inode *dir, struct dentry *dentry, int mode,
 		      struct nameidata *nd)
 {
 	struct udf_fileident_bh fibh;
@@ -575,7 +577,8 @@ static int udf_create(struct inode *dir, struct dentry *dentry, umode_t mode,
 
 	fi = udf_add_entry(dir, dentry, &fibh, &cfi, &err);
 	if (!fi) {
-		inode_dec_link_count(inode);
+		inode->i_nlink--;
+		mark_inode_dirty(inode);
 		iput(inode);
 		return err;
 	}
@@ -594,7 +597,7 @@ static int udf_create(struct inode *dir, struct dentry *dentry, umode_t mode,
 	return 0;
 }
 
-static int udf_mknod(struct inode *dir, struct dentry *dentry, umode_t mode,
+static int udf_mknod(struct inode *dir, struct dentry *dentry, int mode,
 		     dev_t rdev)
 {
 	struct inode *inode;
@@ -615,7 +618,8 @@ static int udf_mknod(struct inode *dir, struct dentry *dentry, umode_t mode,
 	init_special_inode(inode, mode, rdev);
 	fi = udf_add_entry(dir, dentry, &fibh, &cfi, &err);
 	if (!fi) {
-		inode_dec_link_count(inode);
+		inode->i_nlink--;
+		mark_inode_dirty(inode);
 		iput(inode);
 		return err;
 	}
@@ -638,7 +642,7 @@ out:
 	return err;
 }
 
-static int udf_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode)
+static int udf_mkdir(struct inode *dir, struct dentry *dentry, int mode)
 {
 	struct inode *inode;
 	struct udf_fileident_bh fibh;
@@ -646,6 +650,10 @@ static int udf_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode)
 	int err;
 	struct udf_inode_info *dinfo = UDF_I(dir);
 	struct udf_inode_info *iinfo;
+
+	err = -EMLINK;
+	if (dir->i_nlink >= UDF_MAX_LINKS)
+		goto out;
 
 	err = -EIO;
 	inode = udf_new_inode(dir, S_IFDIR | mode, &err);
@@ -657,11 +665,12 @@ static int udf_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode)
 	inode->i_fop = &udf_dir_operations;
 	fi = udf_add_entry(inode, NULL, &fibh, &cfi, &err);
 	if (!fi) {
-		inode_dec_link_count(inode);
+		inode->i_nlink--;
+		mark_inode_dirty(inode);
 		iput(inode);
 		goto out;
 	}
-	set_nlink(inode, 2);
+	inode->i_nlink = 2;
 	cfi.icb.extLength = cpu_to_le32(inode->i_sb->s_blocksize);
 	cfi.icb.extLocation = cpu_to_lelb(dinfo->i_location);
 	*(__le32 *)((struct allocDescImpUse *)cfi.icb.impUse)->impUse =
@@ -674,7 +683,7 @@ static int udf_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode)
 
 	fi = udf_add_entry(dir, dentry, &fibh, &cfi, &err);
 	if (!fi) {
-		clear_nlink(inode);
+		inode->i_nlink = 0;
 		mark_inode_dirty(inode);
 		iput(inode);
 		goto out;
@@ -790,8 +799,9 @@ static int udf_rmdir(struct inode *dir, struct dentry *dentry)
 	if (retval)
 		goto end_rmdir;
 	if (inode->i_nlink != 2)
-		udf_warn(inode->i_sb, "empty directory has nlink != 2 (%d)\n",
-			 inode->i_nlink);
+		udf_warning(inode->i_sb, "udf_rmdir",
+			    "empty directory has nlink != 2 (%d)",
+			    inode->i_nlink);
 	clear_nlink(inode);
 	inode->i_size = 0;
 	inode_dec_link_count(dir);
@@ -830,7 +840,7 @@ static int udf_unlink(struct inode *dir, struct dentry *dentry)
 	if (!inode->i_nlink) {
 		udf_debug("Deleting nonexistent file (%lu), %d\n",
 			  inode->i_ino, inode->i_nlink);
-		set_nlink(inode, 1);
+		inode->i_nlink = 1;
 	}
 	retval = udf_delete_entry(dir, fi, &fibh, &cfi);
 	if (retval)
@@ -1026,6 +1036,9 @@ static int udf_link(struct dentry *old_dentry, struct inode *dir,
 	struct fileIdentDesc cfi, *fi;
 	int err;
 
+	if (inode->i_nlink >= UDF_MAX_LINKS)
+		return -EMLINK;
+
 	fi = udf_add_entry(dir, dentry, &fibh, &cfi, &err);
 	if (!fi) {
 		return err;
@@ -1116,6 +1129,10 @@ static int udf_rename(struct inode *old_dir, struct dentry *old_dentry,
 		tloc = lelb_to_cpu(dir_fi->icb.extLocation);
 		if (udf_get_lb_pblock(old_inode->i_sb, &tloc, 0) !=
 				old_dir->i_ino)
+			goto end_rename;
+
+		retval = -EMLINK;
+		if (!new_inode && new_dir->i_nlink >= UDF_MAX_LINKS)
 			goto end_rename;
 	}
 	if (!nfi) {

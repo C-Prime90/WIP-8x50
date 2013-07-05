@@ -1,7 +1,6 @@
 #include <linux/platform_device.h>
 
 #include <asm/btfixup.h>
-#include <asm/cpu_type.h>
 
 struct irq_bucket {
         struct irq_bucket *next;

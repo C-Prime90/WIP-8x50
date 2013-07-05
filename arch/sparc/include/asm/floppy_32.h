@@ -11,6 +11,7 @@
 
 #include <asm/page.h>
 #include <asm/pgtable.h>
+#include <asm/system.h>
 #include <asm/idprom.h>
 #include <asm/machines.h>
 #include <asm/oplib.h>

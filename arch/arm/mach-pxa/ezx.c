@@ -797,14 +797,12 @@ static void __init a780_init(void)
 }
 
 MACHINE_START(EZX_A780, "Motorola EZX A780")
-	.atag_offset    = 0x100,
+	.boot_params    = 0xa0000100,
 	.map_io         = pxa27x_map_io,
 	.nr_irqs	= EZX_NR_IRQS,
 	.init_irq       = pxa27x_init_irq,
-	.handle_irq       = pxa27x_handle_irq,
 	.timer          = &pxa_timer,
 	.init_machine   = a780_init,
-	.restart	= pxa_restart,
 MACHINE_END
 #endif
 
@@ -864,14 +862,12 @@ static void __init e680_init(void)
 }
 
 MACHINE_START(EZX_E680, "Motorola EZX E680")
-	.atag_offset    = 0x100,
+	.boot_params    = 0xa0000100,
 	.map_io         = pxa27x_map_io,
 	.nr_irqs	= EZX_NR_IRQS,
 	.init_irq       = pxa27x_init_irq,
-	.handle_irq       = pxa27x_handle_irq,
 	.timer          = &pxa_timer,
 	.init_machine   = e680_init,
-	.restart	= pxa_restart,
 MACHINE_END
 #endif
 
@@ -931,14 +927,12 @@ static void __init a1200_init(void)
 }
 
 MACHINE_START(EZX_A1200, "Motorola EZX A1200")
-	.atag_offset    = 0x100,
+	.boot_params    = 0xa0000100,
 	.map_io         = pxa27x_map_io,
 	.nr_irqs	= EZX_NR_IRQS,
 	.init_irq       = pxa27x_init_irq,
-	.handle_irq       = pxa27x_handle_irq,
 	.timer          = &pxa_timer,
 	.init_machine   = a1200_init,
-	.restart	= pxa_restart,
 MACHINE_END
 #endif
 
@@ -1123,14 +1117,12 @@ static void __init a910_init(void)
 }
 
 MACHINE_START(EZX_A910, "Motorola EZX A910")
-	.atag_offset    = 0x100,
+	.boot_params    = 0xa0000100,
 	.map_io         = pxa27x_map_io,
 	.nr_irqs	= EZX_NR_IRQS,
 	.init_irq       = pxa27x_init_irq,
-	.handle_irq       = pxa27x_handle_irq,
 	.timer          = &pxa_timer,
 	.init_machine   = a910_init,
-	.restart	= pxa_restart,
 MACHINE_END
 #endif
 
@@ -1190,14 +1182,12 @@ static void __init e6_init(void)
 }
 
 MACHINE_START(EZX_E6, "Motorola EZX E6")
-	.atag_offset    = 0x100,
+	.boot_params    = 0xa0000100,
 	.map_io         = pxa27x_map_io,
 	.nr_irqs	= EZX_NR_IRQS,
 	.init_irq       = pxa27x_init_irq,
-	.handle_irq       = pxa27x_handle_irq,
 	.timer          = &pxa_timer,
 	.init_machine   = e6_init,
-	.restart	= pxa_restart,
 MACHINE_END
 #endif
 
@@ -1231,13 +1221,11 @@ static void __init e2_init(void)
 }
 
 MACHINE_START(EZX_E2, "Motorola EZX E2")
-	.atag_offset    = 0x100,
+	.boot_params    = 0xa0000100,
 	.map_io         = pxa27x_map_io,
 	.nr_irqs	= EZX_NR_IRQS,
 	.init_irq       = pxa27x_init_irq,
-	.handle_irq       = pxa27x_handle_irq,
 	.timer          = &pxa_timer,
 	.init_machine   = e2_init,
-	.restart	= pxa_restart,
 MACHINE_END
 #endif

@@ -33,7 +33,6 @@
 #include <linux/list.h>
 #include <linux/notifier.h>
 #include <linux/smp.h>
-#include <linux/bug.h>
 #include <linux/percpu.h>
 #include <linux/spinlock.h>
 #include <linux/rcupdate.h>
@@ -182,7 +181,7 @@ struct kretprobe {
 	int nmissed;
 	size_t data_size;
 	struct hlist_head free_instances;
-	raw_spinlock_t lock;
+	spinlock_t lock;
 };
 
 struct kretprobe_instance {

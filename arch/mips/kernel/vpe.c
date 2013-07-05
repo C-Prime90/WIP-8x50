@@ -29,6 +29,7 @@
  */
 #include <linux/kernel.h>
 #include <linux/device.h>
+#include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/init.h>
 #include <asm/uaccess.h>
@@ -45,10 +46,11 @@
 #include <asm/mipsregs.h>
 #include <asm/mipsmtregs.h>
 #include <asm/cacheflush.h>
-#include <linux/atomic.h>
+#include <asm/atomic.h>
 #include <asm/cpu.h>
 #include <asm/mips_mt.h>
 #include <asm/processor.h>
+#include <asm/system.h>
 #include <asm/vpe.h>
 #include <asm/kspd.h>
 
@@ -190,7 +192,7 @@ static struct tc *get_tc(int index)
 	}
 	spin_unlock(&vpecontrol.tc_list_lock);
 
-	return res;
+	return NULL;
 }
 
 /* allocate a vpe and associate it with this minor (or index) */

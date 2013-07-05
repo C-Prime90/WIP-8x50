@@ -28,10 +28,12 @@ new (default) values, so you can use:
 
 	grep "(NEW)" conf.new
 
-to see the new config symbols or you can use diffconfig to see the
-differences between the previous and new .config files:
+to see the new config symbols or you can 'diff' the previous and
+new .config files to see the differences:
 
-	scripts/diffconfig .config.old .config | less
+	diff .config.old .config | less
+
+(Yes, we need something better here.)
 
 ______________________________________________________________________
 Environment variables for '*config'

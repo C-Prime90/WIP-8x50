@@ -157,18 +157,16 @@ static int dlm_protocol_compare(struct dlm_protocol_version *existing,
 
 static void dlm_unregister_domain_handlers(struct dlm_ctxt *dlm);
 
-void __dlm_unhash_lockres(struct dlm_ctxt *dlm, struct dlm_lock_resource *res)
+void __dlm_unhash_lockres(struct dlm_lock_resource *lockres)
 {
-	if (hlist_unhashed(&res->hash_node))
-		return;
-
-	mlog(0, "%s: Unhash res %.*s\n", dlm->name, res->lockname.len,
-	     res->lockname.name);
-	hlist_del_init(&res->hash_node);
-	dlm_lockres_put(res);
+	if (!hlist_unhashed(&lockres->hash_node)) {
+		hlist_del_init(&lockres->hash_node);
+		dlm_lockres_put(lockres);
+	}
 }
 
-void __dlm_insert_lockres(struct dlm_ctxt *dlm, struct dlm_lock_resource *res)
+void __dlm_insert_lockres(struct dlm_ctxt *dlm,
+		       struct dlm_lock_resource *res)
 {
 	struct hlist_head *bucket;
 	struct qstr *q;
@@ -182,9 +180,6 @@ void __dlm_insert_lockres(struct dlm_ctxt *dlm, struct dlm_lock_resource *res)
 	dlm_lockres_get(res);
 
 	hlist_add_head(&res->hash_node, bucket);
-
-	mlog(0, "%s: Hash res %.*s\n", dlm->name, res->lockname.len,
-	     res->lockname.name);
 }
 
 struct dlm_lock_resource * __dlm_lookup_lockres_full(struct dlm_ctxt *dlm,
@@ -544,17 +539,17 @@ again:
 
 static void __dlm_print_nodes(struct dlm_ctxt *dlm)
 {
-	int node = -1, num = 0;
+	int node = -1;
 
 	assert_spin_locked(&dlm->spinlock);
 
-	printk("( ");
+	printk(KERN_NOTICE "o2dlm: Nodes in domain %s: ", dlm->name);
+
 	while ((node = find_next_bit(dlm->domain_map, O2NM_MAX_NODES,
 				     node + 1)) < O2NM_MAX_NODES) {
 		printk("%d ", node);
-		++num;
 	}
-	printk(") %u nodes\n", num);
+	printk("\n");
 }
 
 static int dlm_exit_domain_handler(struct o2net_msg *msg, u32 len, void *data,
@@ -571,10 +566,11 @@ static int dlm_exit_domain_handler(struct o2net_msg *msg, u32 len, void *data,
 
 	node = exit_msg->node_idx;
 
+	printk(KERN_NOTICE "o2dlm: Node %u leaves domain %s\n", node, dlm->name);
+
 	spin_lock(&dlm->spinlock);
 	clear_bit(node, dlm->domain_map);
 	clear_bit(node, dlm->exit_domain_map);
-	printk(KERN_NOTICE "o2dlm: Node %u leaves domain %s ", node, dlm->name);
 	__dlm_print_nodes(dlm);
 
 	/* notify anything attached to the heartbeat events */
@@ -759,7 +755,6 @@ void dlm_unregister_domain(struct dlm_ctxt *dlm)
 
 		dlm_mark_domain_leaving(dlm);
 		dlm_leave_domain(dlm);
-		printk(KERN_NOTICE "o2dlm: Leaving domain %s\n", dlm->name);
 		dlm_force_free_mles(dlm);
 		dlm_complete_dlm_shutdown(dlm);
 	}
@@ -975,7 +970,7 @@ static int dlm_assert_joined_handler(struct o2net_msg *msg, u32 len, void *data,
 		clear_bit(assert->node_idx, dlm->exit_domain_map);
 		__dlm_set_joining_node(dlm, DLM_LOCK_RES_OWNER_UNKNOWN);
 
-		printk(KERN_NOTICE "o2dlm: Node %u joins domain %s ",
+		printk(KERN_NOTICE "o2dlm: Node %u joins domain %s\n",
 		       assert->node_idx, dlm->name);
 		__dlm_print_nodes(dlm);
 
@@ -1706,10 +1701,8 @@ static int dlm_try_to_join_domain(struct dlm_ctxt *dlm)
 bail:
 	spin_lock(&dlm->spinlock);
 	__dlm_set_joining_node(dlm, DLM_LOCK_RES_OWNER_UNKNOWN);
-	if (!status) {
-		printk(KERN_NOTICE "o2dlm: Joining domain %s ", dlm->name);
+	if (!status)
 		__dlm_print_nodes(dlm);
-	}
 	spin_unlock(&dlm->spinlock);
 
 	if (ctxt) {
@@ -2135,6 +2128,13 @@ struct dlm_ctxt * dlm_register_domain(const char *domain,
 	if (strlen(domain) >= O2NM_MAX_NAME_LEN) {
 		ret = -ENAMETOOLONG;
 		mlog(ML_ERROR, "domain name length too long\n");
+		goto leave;
+	}
+
+	if (!o2hb_check_local_node_heartbeating()) {
+		mlog(ML_ERROR, "the local node has not been configured, or is "
+		     "not heartbeating\n");
+		ret = -EPROTO;
 		goto leave;
 	}
 

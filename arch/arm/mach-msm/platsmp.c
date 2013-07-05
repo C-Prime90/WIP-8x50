@@ -18,9 +18,7 @@
 
 #include <asm/hardware/gic.h>
 #include <asm/cacheflush.h>
-#include <asm/cputype.h>
 #include <asm/mach-types.h>
-#include <asm/smp_plat.h>
 
 #include <mach/msm_iomap.h>
 
@@ -41,12 +39,6 @@ extern void msm_secondary_startup(void);
 volatile int pen_release = -1;
 
 static DEFINE_SPINLOCK(boot_lock);
-
-static inline int get_core_count(void)
-{
-	/* 1 + the PART[1:0] field of MIDR */
-	return ((read_cpuid_id() >> 4) & 3) + 1;
-}
 
 void __cpuinit platform_secondary_init(unsigned int cpu)
 {
@@ -80,7 +72,7 @@ static __cpuinit void prepare_cold_cpu(unsigned int cpu)
 	ret = scm_set_boot_addr(virt_to_phys(msm_secondary_startup),
 				SCM_FLAG_COLDBOOT_CPU1);
 	if (ret == 0) {
-		void __iomem *sc1_base_ptr;
+		void *sc1_base_ptr;
 		sc1_base_ptr = ioremap_nocache(0x00902000, SZ_4K*2);
 		if (sc1_base_ptr) {
 			writel(0, sc1_base_ptr + VDD_SC1_ARRAY_CLAMP_GFS_CTL);
@@ -118,7 +110,7 @@ int __cpuinit boot_secondary(unsigned int cpu, struct task_struct *idle)
 	 * Note that "pen_release" is the hardware CPU ID, whereas
 	 * "cpu" is Linux's internal ID.
 	 */
-	pen_release = cpu_logical_map(cpu);
+	pen_release = cpu;
 	__cpuc_flush_dcache_area((void *)&pen_release, sizeof(pen_release));
 	outer_clean_range(__pa(&pen_release), __pa(&pen_release + 1));
 
@@ -155,15 +147,9 @@ int __cpuinit boot_secondary(unsigned int cpu, struct task_struct *idle)
  */
 void __init smp_init_cpus(void)
 {
-	unsigned int i, ncores = get_core_count();
+	unsigned int i;
 
-	if (ncores > nr_cpu_ids) {
-		pr_warn("SMP: %u cores greater than maximum (%u), clipping\n",
-			ncores, nr_cpu_ids);
-		ncores = nr_cpu_ids;
-	}
-
-	for (i = 0; i < ncores; i++)
+	for (i = 0; i < NR_CPUS; i++)
 		set_cpu_possible(i, true);
 
         set_smp_cross_call(gic_raise_softirq);
@@ -171,4 +157,12 @@ void __init smp_init_cpus(void)
 
 void __init platform_smp_prepare_cpus(unsigned int max_cpus)
 {
+	int i;
+
+	/*
+	 * Initialise the present map, which describes the set of CPUs
+	 * actually populated at the present time.
+	 */
+	for (i = 0; i < max_cpus; i++)
+		set_cpu_present(i, true);
 }

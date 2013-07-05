@@ -12,10 +12,8 @@
  */
 
 #include <linux/ctype.h>
-#include <linux/device.h>
 #include <linux/power_supply.h>
 #include <linux/slab.h>
-#include <linux/stat.h>
 
 #include "power_supply.h"
 
@@ -44,7 +42,7 @@ static ssize_t power_supply_show_property(struct device *dev,
 					  struct device_attribute *attr,
 					  char *buf) {
 	static char *type_text[] = {
-		"Unknown", "Battery", "UPS", "Mains", "USB",
+		"Battery", "UPS", "Mains", "USB",
 		"USB_DCP", "USB_CDP", "USB_ACA"
 	};
 	static char *status_text[] = {
@@ -64,9 +62,6 @@ static ssize_t power_supply_show_property(struct device *dev,
 	static char *capacity_level_text[] = {
 		"Unknown", "Critical", "Low", "Normal", "High", "Full"
 	};
-	static char *scope_text[] = {
-		"Unknown", "System", "Device"
-	};
 	ssize_t ret = 0;
 	struct power_supply *psy = dev_get_drvdata(dev);
 	const ptrdiff_t off = attr - power_supply_attrs;
@@ -82,8 +77,8 @@ static ssize_t power_supply_show_property(struct device *dev,
 			dev_dbg(dev, "driver has no data for `%s' property\n",
 				attr->attr.name);
 		else if (ret != -ENODEV)
-			dev_err(dev, "driver failed to report `%s' property: %zd\n",
-				attr->attr.name, ret);
+			dev_err(dev, "driver failed to report `%s' property\n",
+				attr->attr.name);
 		return ret;
 	}
 
@@ -99,8 +94,6 @@ static ssize_t power_supply_show_property(struct device *dev,
 		return sprintf(buf, "%s\n", capacity_level_text[value.intval]);
 	else if (off == POWER_SUPPLY_PROP_TYPE)
 		return sprintf(buf, "%s\n", type_text[value.intval]);
-	else if (off == POWER_SUPPLY_PROP_SCOPE)
-		return sprintf(buf, "%s\n", scope_text[value.intval]);
 	else if (off >= POWER_SUPPLY_PROP_MODEL_NAME)
 		return sprintf(buf, "%s\n", value.strval);
 
@@ -173,11 +166,6 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(time_to_full_now),
 	POWER_SUPPLY_ATTR(time_to_full_avg),
 	POWER_SUPPLY_ATTR(type),
-	POWER_SUPPLY_ATTR(scope),
-	/* Local extensions */
-	POWER_SUPPLY_ATTR(usb_hc),
-	POWER_SUPPLY_ATTR(usb_otg),
-	POWER_SUPPLY_ATTR(charge_enabled),
 	/* Properties of type `const char *' */
 	POWER_SUPPLY_ATTR(model_name),
 	POWER_SUPPLY_ATTR(manufacturer),
@@ -187,13 +175,13 @@ static struct device_attribute power_supply_attrs[] = {
 static struct attribute *
 __power_supply_attrs[ARRAY_SIZE(power_supply_attrs) + 1];
 
-static umode_t power_supply_attr_is_visible(struct kobject *kobj,
+static mode_t power_supply_attr_is_visible(struct kobject *kobj,
 					   struct attribute *attr,
 					   int attrno)
 {
 	struct device *dev = container_of(kobj, struct device, kobj);
 	struct power_supply *psy = dev_get_drvdata(dev);
-	umode_t mode = S_IRUSR | S_IRGRP | S_IROTH;
+	mode_t mode = S_IRUSR | S_IRGRP | S_IROTH;
 	int i;
 
 	if (attrno == POWER_SUPPLY_PROP_TYPE)

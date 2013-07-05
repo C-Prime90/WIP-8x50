@@ -33,6 +33,7 @@
 #include <linux/skbuff.h>
 #include <net/sock.h>
 #include <asm/uaccess.h>
+#include <asm/system.h>
 #include <linux/fcntl.h>
 #include <linux/termios.h>	/* For TIOCINQ/OUTQ */
 #include <linux/mm.h>
@@ -401,14 +402,14 @@ static int ax25_ctl_ioctl(const unsigned int cmd, void __user *arg)
 		break;
 
 	case AX25_T1:
-		if (ax25_ctl.arg < 1 || ax25_ctl.arg > ULONG_MAX / HZ)
+		if (ax25_ctl.arg < 1)
 			goto einval_put;
 		ax25->rtt = (ax25_ctl.arg * HZ) / 2;
 		ax25->t1  = ax25_ctl.arg * HZ;
 		break;
 
 	case AX25_T2:
-		if (ax25_ctl.arg < 1 || ax25_ctl.arg > ULONG_MAX / HZ)
+		if (ax25_ctl.arg < 1)
 			goto einval_put;
 		ax25->t2 = ax25_ctl.arg * HZ;
 		break;
@@ -421,15 +422,10 @@ static int ax25_ctl_ioctl(const unsigned int cmd, void __user *arg)
 		break;
 
 	case AX25_T3:
-		if (ax25_ctl.arg > ULONG_MAX / HZ)
-			goto einval_put;
 		ax25->t3 = ax25_ctl.arg * HZ;
 		break;
 
 	case AX25_IDLE:
-		if (ax25_ctl.arg > ULONG_MAX / (60 * HZ))
-			goto einval_put;
-
 		ax25->idle = ax25_ctl.arg * 60 * HZ;
 		break;
 
@@ -544,16 +540,15 @@ static int ax25_setsockopt(struct socket *sock, int level, int optname,
 	ax25_cb *ax25;
 	struct net_device *dev;
 	char devname[IFNAMSIZ];
-	unsigned long opt;
-	int res = 0;
+	int opt, res = 0;
 
 	if (level != SOL_AX25)
 		return -ENOPROTOOPT;
 
-	if (optlen < sizeof(unsigned int))
+	if (optlen < sizeof(int))
 		return -EINVAL;
 
-	if (get_user(opt, (unsigned int __user *)optval))
+	if (get_user(opt, (int __user *)optval))
 		return -EFAULT;
 
 	lock_sock(sk);
@@ -576,7 +571,7 @@ static int ax25_setsockopt(struct socket *sock, int level, int optname,
 		break;
 
 	case AX25_T1:
-		if (opt < 1 || opt > ULONG_MAX / HZ) {
+		if (opt < 1) {
 			res = -EINVAL;
 			break;
 		}
@@ -585,7 +580,7 @@ static int ax25_setsockopt(struct socket *sock, int level, int optname,
 		break;
 
 	case AX25_T2:
-		if (opt < 1 || opt > ULONG_MAX / HZ) {
+		if (opt < 1) {
 			res = -EINVAL;
 			break;
 		}
@@ -601,7 +596,7 @@ static int ax25_setsockopt(struct socket *sock, int level, int optname,
 		break;
 
 	case AX25_T3:
-		if (opt < 1 || opt > ULONG_MAX / HZ) {
+		if (opt < 1) {
 			res = -EINVAL;
 			break;
 		}
@@ -609,7 +604,7 @@ static int ax25_setsockopt(struct socket *sock, int level, int optname,
 		break;
 
 	case AX25_IDLE:
-		if (opt > ULONG_MAX / (60 * HZ)) {
+		if (opt < 0) {
 			res = -EINVAL;
 			break;
 		}
@@ -617,7 +612,7 @@ static int ax25_setsockopt(struct socket *sock, int level, int optname,
 		break;
 
 	case AX25_BACKOFF:
-		if (opt > 2) {
+		if (opt < 0 || opt > 2) {
 			res = -EINVAL;
 			break;
 		}

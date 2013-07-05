@@ -13,6 +13,7 @@
 #include <linux/pm.h>
 #include <linux/tick.h>
 #include <linux/bitops.h>
+#include <asm/system.h>
 #include <asm/pgalloc.h>
 #include <asm/uaccess.h> /* for USER_DS macros */
 #include <asm/cacheflush.h>
@@ -102,14 +103,14 @@ void cpu_idle(void)
 		if (!idle)
 			idle = default_idle;
 
-		tick_nohz_idle_enter();
-		rcu_idle_enter();
+		tick_nohz_stop_sched_tick(1);
 		while (!need_resched())
 			idle();
-		rcu_idle_exit();
-		tick_nohz_idle_exit();
+		tick_nohz_restart_sched_tick();
 
-		schedule_preempt_disabled();
+		preempt_enable_no_resched();
+		schedule();
+		preempt_disable();
 		check_pgt_cache();
 	}
 }
@@ -178,7 +179,6 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
 
 	ti->cpu_context.msr = (childregs->msr|MSR_VM);
 	ti->cpu_context.msr &= ~MSR_UMS; /* switch_to to kernel mode */
-	ti->cpu_context.msr &= ~MSR_IE;
 #endif
 	ti->cpu_context.r15 = (unsigned long)ret_from_fork - 8;
 
@@ -237,6 +237,7 @@ unsigned long get_wchan(struct task_struct *p)
 /* Set up a thread for executing a new program */
 void start_thread(struct pt_regs *regs, unsigned long pc, unsigned long usp)
 {
+	set_fs(USER_DS);
 	regs->pc = pc;
 	regs->r1 = usp;
 	regs->pt_mode = 0;

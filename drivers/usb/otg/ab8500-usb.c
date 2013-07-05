@@ -30,7 +30,7 @@
 #include <linux/interrupt.h>
 #include <linux/delay.h>
 #include <linux/mfd/abx500.h>
-#include <linux/mfd/abx500/ab8500.h>
+#include <linux/mfd/ab8500.h>
 
 #define AB8500_MAIN_WD_CTRL_REG 0x01
 #define AB8500_USB_LINE_STAT_REG 0x80
@@ -68,7 +68,7 @@ enum ab8500_usb_link_status {
 };
 
 struct ab8500_usb {
-	struct usb_phy phy;
+	struct otg_transceiver otg;
 	struct device *dev;
 	int irq_num_id_rise;
 	int irq_num_id_fall;
@@ -82,9 +82,9 @@ struct ab8500_usb {
 	int rev;
 };
 
-static inline struct ab8500_usb *phy_to_ab(struct usb_phy *x)
+static inline struct ab8500_usb *xceiv_to_ab(struct otg_transceiver *x)
 {
-	return container_of(x, struct ab8500_usb, phy);
+	return container_of(x, struct ab8500_usb, otg);
 }
 
 static void ab8500_usb_wd_workaround(struct ab8500_usb *ab)
@@ -153,7 +153,7 @@ static int ab8500_usb_link_status_update(struct ab8500_usb *ab)
 	u8 reg;
 	enum ab8500_usb_link_status lsts;
 	void *v = NULL;
-	enum usb_phy_events event;
+	enum usb_xceiv_events event;
 
 	abx500_get_register_interruptible(ab->dev,
 			AB8500_USB,
@@ -169,8 +169,8 @@ static int ab8500_usb_link_status_update(struct ab8500_usb *ab)
 		/* TODO: Disable regulators. */
 		ab8500_usb_host_phy_dis(ab);
 		ab8500_usb_peri_phy_dis(ab);
-		ab->phy.state = OTG_STATE_B_IDLE;
-		ab->phy.otg->default_a = false;
+		ab->otg.state = OTG_STATE_B_IDLE;
+		ab->otg.default_a = false;
 		ab->vbus_draw = 0;
 		event = USB_EVENT_NONE;
 		break;
@@ -181,22 +181,22 @@ static int ab8500_usb_link_status_update(struct ab8500_usb *ab)
 	case USB_LINK_HOST_CHG_NM:
 	case USB_LINK_HOST_CHG_HS:
 	case USB_LINK_HOST_CHG_HS_CHIRP:
-		if (ab->phy.otg->gadget) {
+		if (ab->otg.gadget) {
 			/* TODO: Enable regulators. */
 			ab8500_usb_peri_phy_en(ab);
-			v = ab->phy.otg->gadget;
+			v = ab->otg.gadget;
 		}
 		event = USB_EVENT_VBUS;
 		break;
 
 	case USB_LINK_HM_IDGND:
-		if (ab->phy.otg->host) {
+		if (ab->otg.host) {
 			/* TODO: Enable regulators. */
 			ab8500_usb_host_phy_en(ab);
-			v = ab->phy.otg->host;
+			v = ab->otg.host;
 		}
-		ab->phy.state = OTG_STATE_A_IDLE;
-		ab->phy.otg->default_a = true;
+		ab->otg.state = OTG_STATE_A_IDLE;
+		ab->otg.default_a = true;
 		event = USB_EVENT_ID;
 		break;
 
@@ -212,7 +212,7 @@ static int ab8500_usb_link_status_update(struct ab8500_usb *ab)
 		break;
 	}
 
-	atomic_notifier_call_chain(&ab->phy.notifier, event, v);
+	atomic_notifier_call_chain(&ab->otg.notifier, event, v);
 
 	return 0;
 }
@@ -262,27 +262,27 @@ static void ab8500_usb_phy_disable_work(struct work_struct *work)
 	struct ab8500_usb *ab = container_of(work, struct ab8500_usb,
 						phy_dis_work);
 
-	if (!ab->phy.otg->host)
+	if (!ab->otg.host)
 		ab8500_usb_host_phy_dis(ab);
 
-	if (!ab->phy.otg->gadget)
+	if (!ab->otg.gadget)
 		ab8500_usb_peri_phy_dis(ab);
 }
 
-static int ab8500_usb_set_power(struct usb_phy *phy, unsigned mA)
+static int ab8500_usb_set_power(struct otg_transceiver *otg, unsigned mA)
 {
 	struct ab8500_usb *ab;
 
-	if (!phy)
+	if (!otg)
 		return -ENODEV;
 
-	ab = phy_to_ab(phy);
+	ab = xceiv_to_ab(otg);
 
 	ab->vbus_draw = mA;
 
 	if (mA)
-		atomic_notifier_call_chain(&ab->phy.notifier,
-				USB_EVENT_ENUMERATED, ab->phy.otg->gadget);
+		atomic_notifier_call_chain(&ab->otg.notifier,
+				USB_EVENT_ENUMERATED, ab->otg.gadget);
 	return 0;
 }
 
@@ -290,21 +290,21 @@ static int ab8500_usb_set_power(struct usb_phy *phy, unsigned mA)
  * ab->vbus_draw.
  */
 
-static int ab8500_usb_set_suspend(struct usb_phy *x, int suspend)
+static int ab8500_usb_set_suspend(struct otg_transceiver *x, int suspend)
 {
 	/* TODO */
 	return 0;
 }
 
-static int ab8500_usb_set_peripheral(struct usb_otg *otg,
-					struct usb_gadget *gadget)
+static int ab8500_usb_set_peripheral(struct otg_transceiver *otg,
+		struct usb_gadget *gadget)
 {
 	struct ab8500_usb *ab;
 
 	if (!otg)
 		return -ENODEV;
 
-	ab = phy_to_ab(otg->phy);
+	ab = xceiv_to_ab(otg);
 
 	/* Some drivers call this function in atomic context.
 	 * Do not update ab8500 registers directly till this
@@ -313,11 +313,11 @@ static int ab8500_usb_set_peripheral(struct usb_otg *otg,
 
 	if (!gadget) {
 		/* TODO: Disable regulators. */
-		otg->gadget = NULL;
+		ab->otg.gadget = NULL;
 		schedule_work(&ab->phy_dis_work);
 	} else {
-		otg->gadget = gadget;
-		otg->phy->state = OTG_STATE_B_IDLE;
+		ab->otg.gadget = gadget;
+		ab->otg.state = OTG_STATE_B_IDLE;
 
 		/* Phy will not be enabled if cable is already
 		 * plugged-in. Schedule to enable phy.
@@ -329,14 +329,15 @@ static int ab8500_usb_set_peripheral(struct usb_otg *otg,
 	return 0;
 }
 
-static int ab8500_usb_set_host(struct usb_otg *otg, struct usb_bus *host)
+static int ab8500_usb_set_host(struct otg_transceiver *otg,
+					struct usb_bus *host)
 {
 	struct ab8500_usb *ab;
 
 	if (!otg)
 		return -ENODEV;
 
-	ab = phy_to_ab(otg->phy);
+	ab = xceiv_to_ab(otg);
 
 	/* Some drivers call this function in atomic context.
 	 * Do not update ab8500 registers directly till this
@@ -345,10 +346,10 @@ static int ab8500_usb_set_host(struct usb_otg *otg, struct usb_bus *host)
 
 	if (!host) {
 		/* TODO: Disable regulators. */
-		otg->host = NULL;
+		ab->otg.host = NULL;
 		schedule_work(&ab->phy_dis_work);
 	} else {
-		otg->host = host;
+		ab->otg.host = host;
 		/* Phy will not be enabled if cable is already
 		 * plugged-in. Schedule to enable phy.
 		 * Use same delay to avoid any race condition.
@@ -471,7 +472,6 @@ static int ab8500_usb_v2_res_setup(struct platform_device *pdev,
 static int __devinit ab8500_usb_probe(struct platform_device *pdev)
 {
 	struct ab8500_usb	*ab;
-	struct usb_otg		*otg;
 	int err;
 	int rev;
 
@@ -488,28 +488,19 @@ static int __devinit ab8500_usb_probe(struct platform_device *pdev)
 	if (!ab)
 		return -ENOMEM;
 
-	otg = kzalloc(sizeof *otg, GFP_KERNEL);
-	if (!otg) {
-		kfree(ab);
-		return -ENOMEM;
-	}
-
 	ab->dev			= &pdev->dev;
 	ab->rev			= rev;
-	ab->phy.dev		= ab->dev;
-	ab->phy.otg		= otg;
-	ab->phy.label		= "ab8500";
-	ab->phy.set_suspend	= ab8500_usb_set_suspend;
-	ab->phy.set_power	= ab8500_usb_set_power;
-	ab->phy.state		= OTG_STATE_UNDEFINED;
-
-	otg->phy		= &ab->phy;
-	otg->set_host		= ab8500_usb_set_host;
-	otg->set_peripheral	= ab8500_usb_set_peripheral;
+	ab->otg.dev		= ab->dev;
+	ab->otg.label		= "ab8500";
+	ab->otg.state		= OTG_STATE_UNDEFINED;
+	ab->otg.set_host	= ab8500_usb_set_host;
+	ab->otg.set_peripheral	= ab8500_usb_set_peripheral;
+	ab->otg.set_suspend	= ab8500_usb_set_suspend;
+	ab->otg.set_power	= ab8500_usb_set_power;
 
 	platform_set_drvdata(pdev, ab);
 
-	ATOMIC_INIT_NOTIFIER_HEAD(&ab->phy.notifier);
+	ATOMIC_INIT_NOTIFIER_HEAD(&ab->otg.notifier);
 
 	/* v1: Wait for link status to become stable.
 	 * all: Updates form set_host and set_peripheral as they are atomic.
@@ -529,7 +520,7 @@ static int __devinit ab8500_usb_probe(struct platform_device *pdev)
 	if (err < 0)
 		goto fail0;
 
-	err = usb_set_transceiver(&ab->phy);
+	err = otg_set_transceiver(&ab->otg);
 	if (err) {
 		dev_err(&pdev->dev, "Can't register transceiver\n");
 		goto fail1;
@@ -541,7 +532,6 @@ static int __devinit ab8500_usb_probe(struct platform_device *pdev)
 fail1:
 	ab8500_usb_irq_free(ab);
 fail0:
-	kfree(otg);
 	kfree(ab);
 	return err;
 }
@@ -556,14 +546,13 @@ static int __devexit ab8500_usb_remove(struct platform_device *pdev)
 
 	cancel_work_sync(&ab->phy_dis_work);
 
-	usb_set_transceiver(NULL);
+	otg_set_transceiver(NULL);
 
 	ab8500_usb_host_phy_dis(ab);
 	ab8500_usb_peri_phy_dis(ab);
 
 	platform_set_drvdata(pdev, NULL);
 
-	kfree(ab->phy.otg);
 	kfree(ab);
 
 	return 0;

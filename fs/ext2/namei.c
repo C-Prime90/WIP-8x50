@@ -67,11 +67,15 @@ static struct dentry *ext2_lookup(struct inode * dir, struct dentry *dentry, str
 	inode = NULL;
 	if (ino) {
 		inode = ext2_iget(dir->i_sb, ino);
-		if (inode == ERR_PTR(-ESTALE)) {
-			ext2_error(dir->i_sb, __func__,
-					"deleted inode referenced: %lu",
-					(unsigned long) ino);
-			return ERR_PTR(-EIO);
+		if (IS_ERR(inode)) {
+			if (PTR_ERR(inode) == -ESTALE) {
+				ext2_error(dir->i_sb, __func__,
+						"deleted inode referenced: %lu",
+						(unsigned long) ino);
+				return ERR_PTR(-EIO);
+			} else {
+				return ERR_CAST(inode);
+			}
 		}
 	}
 	return d_splice_alias(inode, dentry);
@@ -94,7 +98,7 @@ struct dentry *ext2_get_parent(struct dentry *child)
  * If the create succeeds, we fill in the inode information
  * with d_instantiate(). 
  */
-static int ext2_create (struct inode * dir, struct dentry * dentry, umode_t mode, struct nameidata *nd)
+static int ext2_create (struct inode * dir, struct dentry * dentry, int mode, struct nameidata *nd)
 {
 	struct inode *inode;
 
@@ -119,7 +123,7 @@ static int ext2_create (struct inode * dir, struct dentry * dentry, umode_t mode
 	return ext2_add_nondir(dentry, inode);
 }
 
-static int ext2_mknod (struct inode * dir, struct dentry *dentry, umode_t mode, dev_t rdev)
+static int ext2_mknod (struct inode * dir, struct dentry *dentry, int mode, dev_t rdev)
 {
 	struct inode * inode;
 	int err;
@@ -195,6 +199,9 @@ static int ext2_link (struct dentry * old_dentry, struct inode * dir,
 	struct inode *inode = old_dentry->d_inode;
 	int err;
 
+	if (inode->i_nlink >= EXT2_LINK_MAX)
+		return -EMLINK;
+
 	dquot_initialize(dir);
 
 	inode->i_ctime = CURRENT_TIME_SEC;
@@ -211,10 +218,13 @@ static int ext2_link (struct dentry * old_dentry, struct inode * dir,
 	return err;
 }
 
-static int ext2_mkdir(struct inode * dir, struct dentry * dentry, umode_t mode)
+static int ext2_mkdir(struct inode * dir, struct dentry * dentry, int mode)
 {
 	struct inode * inode;
-	int err;
+	int err = -EMLINK;
+
+	if (dir->i_nlink >= EXT2_LINK_MAX)
+		goto out;
 
 	dquot_initialize(dir);
 
@@ -340,6 +350,11 @@ static int ext2_rename (struct inode * old_dir, struct dentry * old_dentry,
 			drop_nlink(new_inode);
 		inode_dec_link_count(new_inode);
 	} else {
+		if (dir_de) {
+			err = -EMLINK;
+			if (new_dir->i_nlink >= EXT2_LINK_MAX)
+				goto out_dir;
+		}
 		err = ext2_add_link(new_dentry, old_inode);
 		if (err)
 			goto out_dir;
@@ -397,7 +412,7 @@ const struct inode_operations ext2_dir_inode_operations = {
 	.removexattr	= generic_removexattr,
 #endif
 	.setattr	= ext2_setattr,
-	.get_acl	= ext2_get_acl,
+	.check_acl	= ext2_check_acl,
 };
 
 const struct inode_operations ext2_special_inode_operations = {
@@ -408,5 +423,5 @@ const struct inode_operations ext2_special_inode_operations = {
 	.removexattr	= generic_removexattr,
 #endif
 	.setattr	= ext2_setattr,
-	.get_acl	= ext2_get_acl,
+	.check_acl	= ext2_check_acl,
 };

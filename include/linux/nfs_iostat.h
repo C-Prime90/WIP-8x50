@@ -21,7 +21,7 @@
 #ifndef _LINUX_NFS_IOSTAT
 #define _LINUX_NFS_IOSTAT
 
-#define NFS_IOSTAT_VERS		"1.1"
+#define NFS_IOSTAT_VERS		"1.0"
 
 /*
  * NFS byte counters

@@ -15,6 +15,7 @@
 #include <linux/sys.h>
 #include <linux/linkage.h>
 #include <asm/smp.h>
+#include <asm/system.h>
 #include <asm/irqflags.h>
 #include <asm/thread_info.h>
 #include <asm/intctl-regs.h>
@@ -588,7 +589,7 @@ ENTRY(sys_call_table)
 	.long sys_ni_syscall	/* vm86 */
 	.long sys_ni_syscall	/* Old sys_query_module */
 	.long sys_poll
-	.long sys_ni_syscall	/* was nfsservctl */
+	.long sys_nfsservctl
 	.long sys_setresgid16	/* 170 */
 	.long sys_getresgid16
 	.long sys_prctl

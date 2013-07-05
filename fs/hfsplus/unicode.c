@@ -142,11 +142,7 @@ int hfsplus_uni2asc(struct super_block *sb,
 		/* search for single decomposed char */
 		if (likely(compose))
 			ce1 = hfsplus_compose_lookup(hfsplus_compose_table, c0);
-		if (ce1)
-			cc = ce1[0];
-		else
-			cc = 0;
-		if (cc) {
+		if (ce1 && (cc = ce1[0])) {
 			/* start of a possibly decomposed Hangul char */
 			if (cc != 0xffff)
 				goto done;
@@ -213,8 +209,7 @@ int hfsplus_uni2asc(struct super_block *sb,
 				i++;
 				ce2 = ce1;
 			}
-			cc = ce2[0];
-			if (cc) {
+			if ((cc = ce2[0])) {
 				ip += i;
 				ustrlen -= i;
 				goto done;
@@ -306,11 +301,7 @@ int hfsplus_asc2uni(struct super_block *sb, struct hfsplus_unistr *ustr,
 	while (outlen < HFSPLUS_MAX_STRLEN && len > 0) {
 		size = asc2unichar(sb, astr, len, &c);
 
-		if (decompose)
-			dstr = decompose_unichar(c, &dsize);
-		else
-			dstr = NULL;
-		if (dstr) {
+		if (decompose && (dstr = decompose_unichar(c, &dsize))) {
 			if (outlen + dsize > HFSPLUS_MAX_STRLEN)
 				break;
 			do {
@@ -355,23 +346,15 @@ int hfsplus_hash_dentry(const struct dentry *dentry, const struct inode *inode,
 		astr += size;
 		len -= size;
 
-		if (decompose)
-			dstr = decompose_unichar(c, &dsize);
-		else
-			dstr = NULL;
-		if (dstr) {
+		if (decompose && (dstr = decompose_unichar(c, &dsize))) {
 			do {
 				c2 = *dstr++;
-				if (casefold)
-					c2 = case_fold(c2);
-				if (!casefold || c2)
+				if (!casefold || (c2 = case_fold(c2)))
 					hash = partial_name_hash(c2, hash);
 			} while (--dsize > 0);
 		} else {
 			c2 = c;
-			if (casefold)
-				c2 = case_fold(c2);
-			if (!casefold || c2)
+			if (!casefold || (c2 = case_fold(c2)))
 				hash = partial_name_hash(c2, hash);
 		}
 	}
@@ -439,14 +422,12 @@ int hfsplus_compare_dentry(const struct dentry *parent,
 		c1 = *dstr1;
 		c2 = *dstr2;
 		if (casefold) {
-			c1 = case_fold(c1);
-			if (!c1) {
+			if  (!(c1 = case_fold(c1))) {
 				dstr1++;
 				dsize1--;
 				continue;
 			}
-			c2 = case_fold(c2);
-			if (!c2) {
+			if (!(c2 = case_fold(c2))) {
 				dstr2++;
 				dsize2--;
 				continue;

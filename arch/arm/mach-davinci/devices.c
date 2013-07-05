@@ -23,7 +23,6 @@
 #include <mach/mmc.h>
 #include <mach/time.h>
 
-#include "davinci.h"
 #include "clock.h"
 
 #define DAVINCI_I2C_BASE	     0x01C21000
@@ -34,19 +33,8 @@
 #define DM365_MMCSD0_BASE	     0x01D11000
 #define DM365_MMCSD1_BASE	     0x01D00000
 
-void __iomem  *davinci_sysmod_base;
-
-void davinci_map_sysmod(void)
-{
-	davinci_sysmod_base = ioremap_nocache(DAVINCI_SYSTEM_MODULE_BASE,
-					      0x800);
-	/*
-	 * Throw a bug since a lot of board initialization code depends
-	 * on system module availability. ioremap() failing this early
-	 * need careful looking into anyway.
-	 */
-	BUG_ON(!davinci_sysmod_base);
-}
+/* System control register offsets */
+#define DM64XX_VDD3P3V_PWDN	0x48
 
 static struct resource i2c_resources[] = {
 	{
@@ -224,12 +212,12 @@ void __init davinci_setup_mmc(int module, struct davinci_mmc_config *config)
 			davinci_cfg_reg(DM355_SD1_DATA2);
 			davinci_cfg_reg(DM355_SD1_DATA3);
 		} else if (cpu_is_davinci_dm365()) {
-			/* Configure pull down control */
-			unsigned v;
+			void __iomem *pupdctl1 =
+				IO_ADDRESS(DAVINCI_SYSTEM_MODULE_BASE + 0x7c);
 
-			v = __raw_readl(DAVINCI_SYSMOD_VIRT(SYSMOD_PUPDCTL1));
-			__raw_writel(v & ~0xfc0,
-					DAVINCI_SYSMOD_VIRT(SYSMOD_PUPDCTL1));
+			/* Configure pull down control */
+			__raw_writel((__raw_readl(pupdctl1) & ~0xfc0),
+					pupdctl1);
 
 			mmcsd1_resources[0].start = DM365_MMCSD1_BASE;
 			mmcsd1_resources[0].end = DM365_MMCSD1_BASE +
@@ -258,9 +246,11 @@ void __init davinci_setup_mmc(int module, struct davinci_mmc_config *config)
 			mmcsd0_resources[2].start = IRQ_DM365_SDIOINT0;
 		} else if (cpu_is_davinci_dm644x()) {
 			/* REVISIT: should this be in board-init code? */
+			void __iomem *base =
+				IO_ADDRESS(DAVINCI_SYSTEM_MODULE_BASE);
+
 			/* Power-on 3.3V IO cells */
-			__raw_writel(0,
-				DAVINCI_SYSMOD_VIRT(SYSMOD_VDD3P3VPWDN));
+			__raw_writel(0, base + DM64XX_VDD3P3V_PWDN);
 			/*Set up the pull regiter for MMC */
 			davinci_cfg_reg(DM644X_MSTK);
 		}
@@ -300,11 +290,6 @@ struct platform_device davinci_wdt_device = {
 	.num_resources	= ARRAY_SIZE(wdt_resources),
 	.resource	= wdt_resources,
 };
-
-void davinci_restart(char mode, const char *cmd)
-{
-	davinci_watchdog_reset(&davinci_wdt_device);
-}
 
 static void davinci_init_wdt(void)
 {

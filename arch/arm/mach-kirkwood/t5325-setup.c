@@ -106,11 +106,6 @@ static struct platform_device hp_t5325_button_device = {
 	}
 };
 
-static struct platform_device hp_t5325_audio_device = {
-	.name		= "t5325-audio",
-	.id		= -1,
-};
-
 static unsigned int hp_t5325_mpp_config[] __initdata = {
 	MPP0_NF_IO2,
 	MPP1_SPI_MOSI,
@@ -184,7 +179,6 @@ static void __init hp_t5325_init(void)
 	kirkwood_sata_init(&hp_t5325_sata_data);
 	kirkwood_ehci_init();
 	platform_device_register(&hp_t5325_button_device);
-	platform_device_register(&hp_t5325_audio_device);
 
 	i2c_register_board_info(0, i2c_board_info, ARRAY_SIZE(i2c_board_info));
 	kirkwood_audio_init();
@@ -207,11 +201,10 @@ subsys_initcall(hp_t5325_pci_init);
 
 MACHINE_START(T5325, "HP t5325 Thin Client")
 	/* Maintainer: Martin Michlmayr <tbm@cyrius.com> */
-	.atag_offset	= 0x100,
+	.boot_params	= 0x00000100,
 	.init_machine	= hp_t5325_init,
 	.map_io		= kirkwood_map_io,
 	.init_early	= kirkwood_init_early,
 	.init_irq	= kirkwood_init_irq,
 	.timer		= &kirkwood_timer,
-	.restart	= kirkwood_restart,
 MACHINE_END

@@ -35,6 +35,7 @@
 #include <asm/sim.h>
 #include <asm/uaccess.h>
 #include <asm/ucontext.h>
+#include <asm/system.h>
 #include <asm/fpu.h>
 #include <asm/cpu-features.h>
 #include <asm/war.h>
@@ -93,8 +94,11 @@ asmlinkage int sysn32_rt_sigsuspend(nabi_no_regargs struct pt_regs regs)
 	sigset_from_compat(&newset, &uset);
 	sigdelsetmask(&newset, ~_BLOCKABLE);
 
+	spin_lock_irq(&current->sighand->siglock);
 	current->saved_sigmask = current->blocked;
-	set_current_blocked(&newset);
+	current->blocked = newset;
+	recalc_sigpending();
+	spin_unlock_irq(&current->sighand->siglock);
 
 	current->state = TASK_INTERRUPTIBLE;
 	schedule();
@@ -118,7 +122,10 @@ asmlinkage void sysn32_rt_sigreturn(nabi_no_regargs struct pt_regs regs)
 		goto badframe;
 
 	sigdelsetmask(&set, ~_BLOCKABLE);
-	set_current_blocked(&set);
+	spin_lock_irq(&current->sighand->siglock);
+	current->blocked = set;
+	recalc_sigpending();
+	spin_unlock_irq(&current->sighand->siglock);
 
 	sig = restore_sigcontext(&regs, &frame->rs_uc.uc_mcontext);
 	if (sig < 0)

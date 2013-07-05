@@ -16,6 +16,7 @@
 #include <linux/irq.h>
 #include <linux/interrupt.h>
 
+#include <asm/system.h>
 #include <asm/traps.h>
 #include <asm/io.h>
 #include <asm/setup.h>

@@ -16,7 +16,7 @@
 #include <linux/nfs_fs.h>
 #include "internal.h"
 
-#ifdef NFS_DEBUG
+#ifdef RPC_DEBUG
 # define NFSDBG_FACILITY	NFSDBG_MOUNT
 #endif
 
@@ -67,7 +67,7 @@ enum {
 	MOUNTPROC3_EXPORT	= 5,
 };
 
-static const struct rpc_program mnt_program;
+static struct rpc_program	mnt_program;
 
 /*
  * Defined by OpenGroup XNFS Version 3W, chapter 8
@@ -153,7 +153,7 @@ int nfs_mount(struct nfs_mount_request *info)
 		.rpc_resp	= &result,
 	};
 	struct rpc_create_args args = {
-		.net		= info->net,
+		.net		= &init_net,
 		.protocol	= info->protocol,
 		.address	= info->sap,
 		.addrsize	= info->salen,
@@ -225,7 +225,7 @@ void nfs_umount(const struct nfs_mount_request *info)
 		.to_retries = 2,
 	};
 	struct rpc_create_args args = {
-		.net		= info->net,
+		.net		= &init_net,
 		.protocol	= IPPROTO_UDP,
 		.address	= info->sap,
 		.addrsize	= info->salen,
@@ -488,19 +488,19 @@ static struct rpc_procinfo mnt3_procedures[] = {
 };
 
 
-static const struct rpc_version mnt_version1 = {
+static struct rpc_version mnt_version1 = {
 	.number		= 1,
 	.nrprocs	= ARRAY_SIZE(mnt_procedures),
 	.procs		= mnt_procedures,
 };
 
-static const struct rpc_version mnt_version3 = {
+static struct rpc_version mnt_version3 = {
 	.number		= 3,
 	.nrprocs	= ARRAY_SIZE(mnt3_procedures),
 	.procs		= mnt3_procedures,
 };
 
-static const struct rpc_version *mnt_version[] = {
+static struct rpc_version *mnt_version[] = {
 	NULL,
 	&mnt_version1,
 	NULL,
@@ -509,7 +509,7 @@ static const struct rpc_version *mnt_version[] = {
 
 static struct rpc_stat mnt_stats;
 
-static const struct rpc_program mnt_program = {
+static struct rpc_program mnt_program = {
 	.name		= "mount",
 	.number		= NFS_MNT_PROGRAM,
 	.nrvers		= ARRAY_SIZE(mnt_version),

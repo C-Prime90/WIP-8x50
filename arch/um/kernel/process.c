@@ -20,12 +20,12 @@
 #include <linux/threads.h>
 #include <asm/current.h>
 #include <asm/pgtable.h>
-#include <asm/mmu_context.h>
 #include <asm/uaccess.h>
 #include "as-layout.h"
 #include "kern_util.h"
 #include "os.h"
 #include "skas.h"
+#include "tlb.h"
 
 /*
  * This is a per-cpu array.  A processor only modifies its entry and it only
@@ -78,7 +78,6 @@ int kernel_thread(int (*fn)(void *), void * arg, unsigned long flags)
 		      &current->thread.regs, 0, NULL, NULL);
 	return pid;
 }
-EXPORT_SYMBOL(kernel_thread);
 
 static inline void set_current(struct task_struct *task)
 {
@@ -88,8 +87,11 @@ static inline void set_current(struct task_struct *task)
 
 extern void arch_switch_to(struct task_struct *to);
 
-void *__switch_to(struct task_struct *from, struct task_struct *to)
+void *_switch_to(void *prev, void *next, void *last)
 {
+	struct task_struct *from = prev;
+	struct task_struct *to = next;
+
 	to->thread.prev_sched = from;
 	set_current(to);
 
@@ -108,6 +110,7 @@ void *__switch_to(struct task_struct *from, struct task_struct *to)
 	} while (current->thread.saved_task);
 
 	return current->thread.prev_sched;
+
 }
 
 void interrupt_end(void)
@@ -122,9 +125,9 @@ void exit_thread(void)
 {
 }
 
-int get_current_pid(void)
+void *get_current(void)
 {
-	return task_pid_nr(current);
+	return current;
 }
 
 /*
@@ -199,7 +202,7 @@ int copy_thread(unsigned long clone_flags, unsigned long sp,
 		arch_copy_thread(&current->thread.arch, &p->thread.arch);
 	}
 	else {
-		get_safe_registers(p->thread.regs.regs.gp, p->thread.regs.regs.fp);
+		get_safe_registers(p->thread.regs.regs.gp);
 		p->thread.request.u.thread = current->thread.request.u.thread;
 		handler = new_thread_handler;
 	}
@@ -242,12 +245,10 @@ void default_idle(void)
 		if (need_resched())
 			schedule();
 
-		tick_nohz_idle_enter();
-		rcu_idle_enter();
+		tick_nohz_stop_sched_tick(1);
 		nsecs = disable_timer();
 		idle_sleep(nsecs);
-		rcu_idle_exit();
-		tick_nohz_idle_exit();
+		tick_nohz_restart_sched_tick();
 	}
 }
 
@@ -285,7 +286,6 @@ char *uml_strdup(const char *string)
 {
 	return kstrdup(string, GFP_KERNEL);
 }
-EXPORT_SYMBOL(uml_strdup);
 
 int copy_to_user_proc(void __user *to, void *from, int size)
 {

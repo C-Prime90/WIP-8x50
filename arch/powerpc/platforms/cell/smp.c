@@ -15,6 +15,7 @@
 #undef DEBUG
 
 #include <linux/kernel.h>
+#include <linux/module.h>
 #include <linux/sched.h>
 #include <linux/smp.h>
 #include <linux/interrupt.h>
@@ -23,11 +24,11 @@
 #include <linux/spinlock.h>
 #include <linux/cache.h>
 #include <linux/err.h>
-#include <linux/device.h>
+#include <linux/sysdev.h>
 #include <linux/cpu.h>
 
 #include <asm/ptrace.h>
-#include <linux/atomic.h>
+#include <asm/atomic.h>
 #include <asm/irq.h>
 #include <asm/page.h>
 #include <asm/pgtable.h>
@@ -38,6 +39,7 @@
 #include <asm/machdep.h>
 #include <asm/cputable.h>
 #include <asm/firmware.h>
+#include <asm/system.h>
 #include <asm/rtas.h>
 #include <asm/cputhreads.h>
 

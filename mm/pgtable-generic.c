@@ -70,11 +70,10 @@ int pmdp_clear_flush_young(struct vm_area_struct *vma,
 			   unsigned long address, pmd_t *pmdp)
 {
 	int young;
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
-#else
+#ifndef CONFIG_TRANSPARENT_HUGEPAGE
 	BUG();
 #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
 	young = pmdp_test_and_clear_young(vma, address, pmdp);
 	if (young)
 		flush_tlb_range(vma, address, address + HPAGE_PMD_SIZE);

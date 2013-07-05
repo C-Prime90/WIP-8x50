@@ -9,7 +9,6 @@
  */
 
 #include <linux/suspend.h>
-#include <linux/export.h>
 #include <linux/smp.h>
 #include <linux/perf_event.h>
 
@@ -21,7 +20,6 @@
 #include <asm/xcr.h>
 #include <asm/suspend.h>
 #include <asm/debugreg.h>
-#include <asm/fpu-internal.h> /* pcntxt_mask */
 
 #ifdef CONFIG_X86_32
 static struct saved_context saved_context;
@@ -116,7 +114,7 @@ static void __save_processor_state(struct saved_context *ctxt)
 void save_processor_state(void)
 {
 	__save_processor_state(&saved_context);
-	x86_platform.save_sched_clock_state();
+	save_sched_clock_state();
 }
 #ifdef CONFIG_X86_32
 EXPORT_SYMBOL(save_processor_state);
@@ -226,7 +224,6 @@ static void __restore_processor_state(struct saved_context *ctxt)
 	fix_processor_context();
 
 	do_fpu_end();
-	x86_platform.restore_sched_clock_state();
 	mtrr_bp_restore();
 	perf_restore_debug_store();
 }
@@ -235,6 +232,7 @@ static void __restore_processor_state(struct saved_context *ctxt)
 void restore_processor_state(void)
 {
 	__restore_processor_state(&saved_context);
+	restore_sched_clock_state();
 }
 #ifdef CONFIG_X86_32
 EXPORT_SYMBOL(restore_processor_state);

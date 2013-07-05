@@ -49,6 +49,7 @@
 #include <net/udplite.h>
 #include <net/tcp.h>
 #include <net/ipip.h>
+#include <net/ping.h>
 #include <net/protocol.h>
 #include <net/inet_common.h>
 #include <net/route.h>
@@ -60,6 +61,7 @@
 #endif
 
 #include <asm/uaccess.h>
+#include <asm/system.h>
 #include <linux/mroute6.h>
 
 #ifdef CONFIG_ANDROID_PARANOID_NETWORK
@@ -230,7 +232,6 @@ lookup_protocol:
 	inet->mc_ttl	= 1;
 	inet->mc_index	= 0;
 	inet->mc_list	= NULL;
-	inet->rcv_tos	= 0;
 
 	if (ipv4_config.no_pmtu_disc)
 		inet->pmtudisc = IP_PMTUDISC_DONT;
@@ -364,7 +365,7 @@ int inet6_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
 			 */
 			v4addr = LOOPBACK4_IPV6;
 			if (!(addr_type & IPV6_ADDR_MULTICAST))	{
-				if (!(inet->freebind || inet->transparent) &&
+				if (!inet->transparent &&
 				    !ipv6_chk_addr(net, &addr->sin6_addr,
 						   dev, 0)) {
 					err = -EADDRNOTAVAIL;
@@ -378,10 +379,10 @@ int inet6_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
 	inet->inet_rcv_saddr = v4addr;
 	inet->inet_saddr = v4addr;
 
-	np->rcv_saddr = addr->sin6_addr;
+	ipv6_addr_copy(&np->rcv_saddr, &addr->sin6_addr);
 
 	if (!(addr_type & IPV6_ADDR_MULTICAST))
-		np->saddr = addr->sin6_addr;
+		ipv6_addr_copy(&np->saddr, &addr->sin6_addr);
 
 	/* Make sure we are allowed to bind here. */
 	if (sk->sk_prot->get_port(sk, snum)) {
@@ -475,14 +476,14 @@ int inet6_getname(struct socket *sock, struct sockaddr *uaddr,
 		    peer == 1)
 			return -ENOTCONN;
 		sin->sin6_port = inet->inet_dport;
-		sin->sin6_addr = np->daddr;
+		ipv6_addr_copy(&sin->sin6_addr, &np->daddr);
 		if (np->sndflow)
 			sin->sin6_flowinfo = np->flow_label;
 	} else {
 		if (ipv6_addr_any(&np->rcv_saddr))
-			sin->sin6_addr = np->saddr;
+			ipv6_addr_copy(&sin->sin6_addr, &np->saddr);
 		else
-			sin->sin6_addr = np->rcv_saddr;
+			ipv6_addr_copy(&sin->sin6_addr, &np->rcv_saddr);
 
 		sin->sin6_port = inet->inet_sport;
 	}
@@ -505,7 +506,7 @@ int inet6_killaddr_ioctl(struct net *net, void __user *arg) {
 		return -EFAULT;
 
 	sin6.sin6_family = AF_INET6;
-	sin6.sin6_addr = ireq.ifr6_addr;
+	ipv6_addr_copy(&sin6.sin6_addr, &ireq.ifr6_addr);
 	return tcp_nuke_addr(net, (struct sockaddr *) &sin6);
 }
 
@@ -694,8 +695,8 @@ int inet6_sk_rebuild_header(struct sock *sk)
 
 		memset(&fl6, 0, sizeof(fl6));
 		fl6.flowi6_proto = sk->sk_protocol;
-		fl6.daddr = np->daddr;
-		fl6.saddr = np->saddr;
+		ipv6_addr_copy(&fl6.daddr, &np->daddr);
+		ipv6_addr_copy(&fl6.saddr, &np->saddr);
 		fl6.flowlabel = np->flow_label;
 		fl6.flowi6_oif = sk->sk_bound_dev_if;
 		fl6.flowi6_mark = sk->sk_mark;
@@ -803,8 +804,7 @@ out:
 	return err;
 }
 
-static struct sk_buff *ipv6_gso_segment(struct sk_buff *skb,
-	netdev_features_t features)
+static struct sk_buff *ipv6_gso_segment(struct sk_buff *skb, u32 features)
 {
 	struct sk_buff *segs = ERR_PTR(-EINVAL);
 	struct ipv6hdr *ipv6h;
@@ -910,7 +910,6 @@ static struct sk_buff **ipv6_gro_receive(struct sk_buff **head,
 		skb_reset_transport_header(skb);
 		__skb_push(skb, skb_gro_offset(skb));
 
-		ops = rcu_dereference(inet6_protos[proto]);
 		if (!ops || !ops->gro_receive)
 			goto out_unlock;
 
@@ -1020,9 +1019,9 @@ static int __net_init ipv6_init_mibs(struct net *net)
 			  sizeof(struct icmpv6_mib),
 			  __alignof__(struct icmpv6_mib)) < 0)
 		goto err_icmp_mib;
-	net->mib.icmpv6msg_statistics = kzalloc(sizeof(struct icmpv6msg_mib),
-						GFP_KERNEL);
-	if (!net->mib.icmpv6msg_statistics)
+	if (snmp_mib_init((void __percpu **)net->mib.icmpv6msg_statistics,
+			  sizeof(struct icmpv6msg_mib),
+			  __alignof__(struct icmpv6msg_mib)) < 0)
 		goto err_icmpmsg_mib;
 	return 0;
 
@@ -1043,7 +1042,7 @@ static void ipv6_cleanup_mibs(struct net *net)
 	snmp_mib_free((void __percpu **)net->mib.udplite_stats_in6);
 	snmp_mib_free((void __percpu **)net->mib.ipv6_statistics);
 	snmp_mib_free((void __percpu **)net->mib.icmpv6_statistics);
-	kfree(net->mib.icmpv6msg_statistics);
+	snmp_mib_free((void __percpu **)net->mib.icmpv6msg_statistics);
 }
 
 static int __net_init inet6_net_init(struct net *net)
@@ -1114,6 +1113,8 @@ static int __init inet6_init(void)
 		goto out;
 	}
 
+	initialize_hashidentrnd();
+
 	err = proto_register(&tcpv6_prot, 1);
 	if (err)
 		goto out;
@@ -1130,6 +1131,9 @@ static int __init inet6_init(void)
 	if (err)
 		goto out_unregister_udplite_proto;
 
+	err = proto_register(&pingv6_prot, 1);
+	if (err)
+		goto out_unregister_ping_proto;
 
 	/* We MUST register RAW sockets before we create the ICMP6,
 	 * IGMP6, or NDISC control sockets.
@@ -1150,8 +1154,6 @@ static int __init inet6_init(void)
 	if (err)
 		goto static_sysctl_fail;
 #endif
-	tcpv6_prot.sysctl_mem = init_net.ipv4.sysctl_tcp_mem;
-
 	/*
 	 *	ipngwg API draft makes clear that the correct semantics
 	 *	for TCP and UDP is to consider one TCP and UDP instance
@@ -1225,6 +1227,10 @@ static int __init inet6_init(void)
 	if (err)
 		goto ipv6_packet_fail;
 
+	err = pingv6_init();
+	if (err)
+		goto pingv6_fail;
+
 #ifdef CONFIG_SYSCTL
 	err = ipv6_sysctl_register();
 	if (err)
@@ -1237,6 +1243,8 @@ out:
 sysctl_fail:
 	ipv6_packet_cleanup();
 #endif
+pingv6_fail:
+	pingv6_exit();
 ipv6_packet_fail:
 	tcpv6_exit();
 tcpv6_fail:
@@ -1284,6 +1292,8 @@ static_sysctl_fail:
 	rtnl_unregister_all(PF_INET6);
 out_sock_register_fail:
 	rawv6_exit();
+out_unregister_ping_proto:
+	proto_unregister(&pingv6_prot);
 out_unregister_raw_proto:
 	proto_unregister(&rawv6_prot);
 out_unregister_udplite_proto:

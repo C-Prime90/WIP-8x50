@@ -9,6 +9,7 @@
 #include <asm/asm.h>
 #include <asm/errno.h>
 #include <asm/processor.h>
+#include <asm/system.h>
 
 #define __futex_atomic_op1(insn, ret, oldval, uaddr, oparg)	\
 	asm volatile("1:\t" insn "\n"				\

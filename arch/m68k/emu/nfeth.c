@@ -16,7 +16,6 @@
 
 #include <linux/netdevice.h>
 #include <linux/etherdevice.h>
-#include <linux/interrupt.h>
 #include <linux/module.h>
 #include <asm/natfeat.h>
 #include <asm/virtconvert.h>
@@ -39,7 +38,7 @@ enum {
 #define MAX_UNIT	8
 
 /* These identify the driver base version and may not be removed. */
-static const char version[] __devinitconst =
+static const char version[] __devinitdata =
 	KERN_INFO KBUILD_MODNAME ".c:v" DRV_VERSION " " DRV_RELDATE
 	" S.Opichal, M.Jurik, P.Stehlik\n"
 	KERN_INFO " http://aranym.org/\n";
@@ -205,6 +204,7 @@ static struct net_device * __init nfeth_probe(int unit)
 	dev->irq = nfEtherIRQ;
 	dev->netdev_ops = &nfeth_netdev_ops;
 
+	dev->flags |= NETIF_F_NO_CSUM;
 	memcpy(dev->dev_addr, mac, ETH_ALEN);
 
 	priv = netdev_priv(dev);

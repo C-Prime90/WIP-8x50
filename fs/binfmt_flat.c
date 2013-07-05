@@ -15,7 +15,7 @@
  *	JAN/99 -- coded full program relocation (gerg@snapgear.com)
  */
 
-#include <linux/export.h>
+#include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/sched.h>
 #include <linux/mm.h>
@@ -37,6 +37,7 @@
 #include <linux/syscalls.h>
 
 #include <asm/byteorder.h>
+#include <asm/system.h>
 #include <asm/uaccess.h>
 #include <asm/unaligned.h>
 #include <asm/cacheflush.h>
@@ -542,8 +543,10 @@ static int load_flat_file(struct linux_binprm * bprm,
 		 */
 		DBG_FLT("BINFMT_FLAT: ROM mapping of file (we hope)\n");
 
-		textpos = vm_mmap(bprm->file, 0, text_len, PROT_READ|PROT_EXEC,
+		down_write(&current->mm->mmap_sem);
+		textpos = do_mmap(bprm->file, 0, text_len, PROT_READ|PROT_EXEC,
 				  MAP_PRIVATE|MAP_EXECUTABLE, 0);
+		up_write(&current->mm->mmap_sem);
 		if (!textpos || IS_ERR_VALUE(textpos)) {
 			if (!textpos)
 				textpos = (unsigned long) -ENOMEM;
@@ -554,8 +557,10 @@ static int load_flat_file(struct linux_binprm * bprm,
 
 		len = data_len + extra + MAX_SHARED_LIBS * sizeof(unsigned long);
 		len = PAGE_ALIGN(len);
-		realdatastart = vm_mmap(0, 0, len,
+		down_write(&current->mm->mmap_sem);
+		realdatastart = do_mmap(0, 0, len,
 			PROT_READ|PROT_WRITE|PROT_EXEC, MAP_PRIVATE, 0);
+		up_write(&current->mm->mmap_sem);
 
 		if (realdatastart == 0 || IS_ERR_VALUE(realdatastart)) {
 			if (!realdatastart)
@@ -599,8 +604,10 @@ static int load_flat_file(struct linux_binprm * bprm,
 
 		len = text_len + data_len + extra + MAX_SHARED_LIBS * sizeof(unsigned long);
 		len = PAGE_ALIGN(len);
-		textpos = vm_mmap(0, 0, len,
+		down_write(&current->mm->mmap_sem);
+		textpos = do_mmap(0, 0, len,
 			PROT_READ | PROT_EXEC | PROT_WRITE, MAP_PRIVATE, 0);
+		up_write(&current->mm->mmap_sem);
 
 		if (!textpos || IS_ERR_VALUE(textpos)) {
 			if (!textpos)
@@ -895,6 +902,7 @@ static int load_flat_binary(struct linux_binprm * bprm, struct pt_regs * regs)
 						libinfo.lib_list[j].start_data:UNLOADED_LIB;
 
 	install_exec_creds(bprm);
+ 	current->flags &= ~PF_FORKNOEXEC;
 
 	set_binfmt(&flat_format);
 
@@ -942,8 +950,7 @@ static int load_flat_binary(struct linux_binprm * bprm, struct pt_regs * regs)
 
 static int __init init_flat_binfmt(void)
 {
-	register_binfmt(&flat_format);
-	return 0;
+	return register_binfmt(&flat_format);
 }
 
 /****************************************************************************/

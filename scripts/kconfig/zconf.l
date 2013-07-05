@@ -1,5 +1,5 @@
-%option nostdinit noyywrap never-interactive full ecs
-%option 8bit nodefault perf-report perf-report
+%option backup nostdinit noyywrap never-interactive full ecs
+%option 8bit backup nodefault perf-report perf-report
 %option noinput
 %x COMMAND HELP STRING PARAM
 %{
@@ -14,6 +14,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#define LKC_DIRECT_LINK
 #include "lkc.h"
 
 #define START_STRSIZE	16
@@ -95,7 +96,7 @@ n	[A-Za-z0-9_]
 
 <COMMAND>{
 	{n}+	{
-		const struct kconf_id *id = kconf_id_lookup(yytext, yyleng);
+		struct kconf_id *id = kconf_id_lookup(yytext, yyleng);
 		BEGIN(PARAM);
 		current_pos.file = current_file;
 		current_pos.lineno = current_file->lineno;
@@ -131,7 +132,7 @@ n	[A-Za-z0-9_]
 	\n	BEGIN(INITIAL); current_file->lineno++; return T_EOL;
 	---	/* ignore */
 	({n}|[-/.])+	{
-		const struct kconf_id *id = kconf_id_lookup(yytext, yyleng);
+		struct kconf_id *id = kconf_id_lookup(yytext, yyleng);
 		if (id && id->flags & TF_PARAM) {
 			zconflval.id = id;
 			return id->token;

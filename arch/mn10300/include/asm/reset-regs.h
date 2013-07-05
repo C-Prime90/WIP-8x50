@@ -17,6 +17,10 @@
 
 #ifdef __KERNEL__
 
+#ifdef CONFIG_MN10300_WD_TIMER
+#define ARCH_HAS_NMI_WATCHDOG		/* See include/linux/nmi.h */
+#endif
+
 /*
  * watchdog timer registers
  */

@@ -37,11 +37,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  *
+ * Send feedback to <socketcan-users@lists.berlios.de>
+ *
  */
 
 #include <linux/module.h>
 #include <linux/init.h>
-#include <linux/interrupt.h>
 #include <linux/hrtimer.h>
 #include <linux/list.h>
 #include <linux/proc_fs.h>

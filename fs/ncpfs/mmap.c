@@ -19,6 +19,7 @@
 #include <linux/memcontrol.h>
 
 #include <asm/uaccess.h>
+#include <asm/system.h>
 
 #include "ncp_fs.h"
 

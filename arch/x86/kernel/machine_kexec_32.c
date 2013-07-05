@@ -23,6 +23,7 @@
 #include <asm/apic.h>
 #include <asm/cpufeature.h>
 #include <asm/desc.h>
+#include <asm/system.h>
 #include <asm/cacheflush.h>
 #include <asm/debugreg.h>
 

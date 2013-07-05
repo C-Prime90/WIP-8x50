@@ -117,7 +117,7 @@ static void net_route_named_msg(struct sk_buff *buf)
 	u32 dport;
 
 	if (!msg_named(msg)) {
-		kfree_skb(buf);
+		buf_discard(buf);
 		return;
 	}
 
@@ -141,6 +141,17 @@ void tipc_net_route_msg(struct sk_buff *buf)
 		return;
 	msg = buf_msg(buf);
 
+	msg_incr_reroute_cnt(msg);
+	if (msg_reroute_cnt(msg) > 6) {
+		if (msg_errcode(msg)) {
+			buf_discard(buf);
+		} else {
+			tipc_reject_msg(buf, msg_destport(msg) ?
+					TIPC_ERR_NO_PORT : TIPC_ERR_NO_NAME);
+		}
+		return;
+	}
+
 	/* Handle message for this node */
 	dnode = msg_short(msg) ? tipc_own_addr : msg_destnode(msg);
 	if (tipc_in_scope(dnode, tipc_own_addr)) {
@@ -161,7 +172,7 @@ void tipc_net_route_msg(struct sk_buff *buf)
 			tipc_port_recv_proto_msg(buf);
 			break;
 		default:
-			kfree_skb(buf);
+			buf_discard(buf);
 		}
 		return;
 	}
@@ -174,15 +185,22 @@ void tipc_net_route_msg(struct sk_buff *buf)
 int tipc_net_start(u32 addr)
 {
 	char addr_string[16];
+	int res;
+
+	if (tipc_mode != TIPC_NODE_MODE)
+		return -ENOPROTOOPT;
 
 	tipc_subscr_stop();
 	tipc_cfg_stop();
 
 	tipc_own_addr = addr;
+	tipc_mode = TIPC_NET_MODE;
 	tipc_named_reinit();
 	tipc_port_reinit();
 
-	tipc_bclink_init();
+	res = tipc_bclink_init();
+	if (res)
+		return res;
 
 	tipc_k_signal((Handler)tipc_subscr_start, 0);
 	tipc_k_signal((Handler)tipc_cfg_init, 0);
@@ -197,10 +215,11 @@ void tipc_net_stop(void)
 {
 	struct tipc_node *node, *t_node;
 
-	if (!tipc_own_addr)
+	if (tipc_mode != TIPC_NET_MODE)
 		return;
 	write_lock_bh(&tipc_net_lock);
 	tipc_bearer_stop();
+	tipc_mode = TIPC_NODE_MODE;
 	tipc_bclink_stop();
 	list_for_each_entry_safe(node, t_node, &tipc_node_list, list)
 		tipc_node_delete(node);

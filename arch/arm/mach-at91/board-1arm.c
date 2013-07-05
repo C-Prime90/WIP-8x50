@@ -19,7 +19,6 @@
  */
 
 #include <linux/types.h>
-#include <linux/gpio.h>
 #include <linux/init.h>
 #include <linux/mm.h>
 #include <linux/module.h>
@@ -35,6 +34,7 @@
 #include <asm/mach/irq.h>
 
 #include <mach/board.h>
+#include <mach/gpio.h>
 #include <mach/cpu.h>
 
 #include "generic.h"
@@ -46,7 +46,7 @@ static void __init onearm_init_early(void)
 	at91rm9200_set_type(ARCH_REVISON_9200_PQFP);
 
 	/* Initialize processor: 18.432 MHz crystal */
-	at91_initialize(18432000);
+	at91rm9200_initialize(18432000);
 
 	/* DBGU on ttyS0. (Rx & Tx only) */
 	at91_register_uart(0, 0, 0);
@@ -63,15 +63,18 @@ static void __init onearm_init_early(void)
 	at91_set_serial_console(0);
 }
 
-static struct macb_platform_data __initdata onearm_eth_data = {
+static void __init onearm_init_irq(void)
+{
+	at91rm9200_init_interrupts(NULL);
+}
+
+static struct at91_eth_data __initdata onearm_eth_data = {
 	.phy_irq_pin	= AT91_PIN_PC4,
 	.is_rmii	= 1,
 };
 
 static struct at91_usbh_data __initdata onearm_usbh_data = {
 	.ports		= 1,
-	.vbus_pin	= {-EINVAL, -EINVAL},
-	.overcurrent_pin= {-EINVAL, -EINVAL},
 };
 
 static struct at91_udc_data __initdata onearm_udc_data = {
@@ -94,8 +97,8 @@ static void __init onearm_board_init(void)
 MACHINE_START(ONEARM, "Ajeco 1ARM single board computer")
 	/* Maintainer: Lennert Buytenhek <buytenh@wantstofly.org> */
 	.timer		= &at91rm9200_timer,
-	.map_io		= at91_map_io,
+	.map_io		= at91rm9200_map_io,
 	.init_early	= onearm_init_early,
-	.init_irq	= at91_init_irq_default,
+	.init_irq	= onearm_init_irq,
 	.init_machine	= onearm_board_init,
 MACHINE_END

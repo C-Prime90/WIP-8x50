@@ -25,8 +25,7 @@
 #include <linux/mtd/physmap.h>
 #include <linux/pda_power.h>
 #include <linux/pwm_backlight.h>
-#include <linux/regulator/driver.h>
-#include <linux/regulator/gpio-regulator.h>
+#include <linux/regulator/bq24022.h>
 #include <linux/regulator/machine.h>
 #include <linux/usb/gpio_vbus.h>
 #include <linux/i2c/pxa-i2c.h>
@@ -34,7 +33,6 @@
 #include <mach/hardware.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
-#include <asm/system_info.h>
 
 #include <mach/pxa27x.h>
 #include <mach/magician.h>
@@ -186,8 +184,8 @@ static struct resource egpio_resources[] = {
 		.flags = IORESOURCE_MEM,
 	},
 	[1] = {
-		.start = PXA_GPIO_TO_IRQ(GPIO13_MAGICIAN_CPLD_IRQ),
-		.end   = PXA_GPIO_TO_IRQ(GPIO13_MAGICIAN_CPLD_IRQ),
+		.start = gpio_to_irq(GPIO13_MAGICIAN_CPLD_IRQ),
+		.end   = gpio_to_irq(GPIO13_MAGICIAN_CPLD_IRQ),
 		.flags = IORESOURCE_IRQ,
 	},
 };
@@ -346,14 +344,22 @@ static struct pxafb_mach_info samsung_info = {
  * Backlight
  */
 
-static struct gpio magician_bl_gpios[] = {
-	{ EGPIO_MAGICIAN_BL_POWER,  GPIOF_DIR_OUT, "Backlight power" },
-	{ EGPIO_MAGICIAN_BL_POWER2, GPIOF_DIR_OUT, "Backlight power 2" },
-};
-
 static int magician_backlight_init(struct device *dev)
 {
-	return gpio_request_array(ARRAY_AND_SIZE(magician_bl_gpios));
+	int ret;
+
+	ret = gpio_request(EGPIO_MAGICIAN_BL_POWER, "BL_POWER");
+	if (ret)
+		goto err;
+	ret = gpio_request(EGPIO_MAGICIAN_BL_POWER2, "BL_POWER2");
+	if (ret)
+		goto err2;
+	return 0;
+
+err2:
+	gpio_free(EGPIO_MAGICIAN_BL_POWER);
+err:
+	return ret;
 }
 
 static int magician_backlight_notify(struct device *dev, int brightness)
@@ -370,7 +376,8 @@ static int magician_backlight_notify(struct device *dev, int brightness)
 
 static void magician_backlight_exit(struct device *dev)
 {
-	gpio_free_array(ARRAY_AND_SIZE(magician_bl_gpios));
+	gpio_free(EGPIO_MAGICIAN_BL_POWER);
+	gpio_free(EGPIO_MAGICIAN_BL_POWER2);
 }
 
 static struct platform_pwm_backlight_data backlight_data = {
@@ -470,8 +477,8 @@ static struct resource pasic3_resources[] = {
 	},
 	/* No IRQ handler in the PASIC3, DS1WM needs an external IRQ */
 	[1] = {
-		.start  = PXA_GPIO_TO_IRQ(GPIO107_MAGICIAN_DS1WM_IRQ),
-		.end    = PXA_GPIO_TO_IRQ(GPIO107_MAGICIAN_DS1WM_IRQ),
+		.start  = gpio_to_irq(GPIO107_MAGICIAN_DS1WM_IRQ),
+		.end    = gpio_to_irq(GPIO107_MAGICIAN_DS1WM_IRQ),
 		.flags  = IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHEDGE,
 	}
 };
@@ -580,9 +587,11 @@ static struct platform_device power_supply = {
 
 static struct regulator_consumer_supply bq24022_consumers[] = {
 	{
+		.dev = &gpio_vbus.dev,
 		.supply = "vbus_draw",
 	},
 	{
+		.dev = &power_supply.dev,
 		.supply = "ac_draw",
 	},
 };
@@ -596,34 +605,14 @@ static struct regulator_init_data bq24022_init_data = {
 	.consumer_supplies      = bq24022_consumers,
 };
 
-static struct gpio bq24022_gpios[] = {
-	{ EGPIO_MAGICIAN_BQ24022_ISET2, GPIOF_OUT_INIT_LOW, "bq24022_iset2" },
-};
-
-static struct gpio_regulator_state bq24022_states[] = {
-	{ .value = 100000, .gpios = (0 << 0) },
-	{ .value = 500000, .gpios = (1 << 0) },
-};
-
-static struct gpio_regulator_config bq24022_info = {
-	.supply_name = "bq24022",
-
-	.enable_gpio = GPIO30_MAGICIAN_BQ24022_nCHARGE_EN,
-	.enable_high = 0,
-	.enabled_at_boot = 0,
-
-	.gpios = bq24022_gpios,
-	.nr_gpios = ARRAY_SIZE(bq24022_gpios),
-
-	.states = bq24022_states,
-	.nr_states = ARRAY_SIZE(bq24022_states),
-
-	.type = REGULATOR_CURRENT,
-	.init_data = &bq24022_init_data,
+static struct bq24022_mach_info bq24022_info = {
+	.gpio_nce   = GPIO30_MAGICIAN_BQ24022_nCHARGE_EN,
+	.gpio_iset2 = EGPIO_MAGICIAN_BQ24022_ISET2,
+	.init_data  = &bq24022_init_data,
 };
 
 static struct platform_device bq24022 = {
-	.name = "gpio-regulator",
+	.name = "bq24022",
 	.id   = -1,
 	.dev  = {
 		.platform_data = &bq24022_info,
@@ -723,25 +712,16 @@ static struct platform_device *devices[] __initdata = {
 	&leds_gpio,
 };
 
-static struct gpio magician_global_gpios[] = {
-	{ GPIO13_MAGICIAN_CPLD_IRQ,   GPIOF_IN, "CPLD_IRQ" },
-	{ GPIO107_MAGICIAN_DS1WM_IRQ, GPIOF_IN, "DS1WM_IRQ" },
-	{ GPIO104_MAGICIAN_LCD_POWER_1, GPIOF_OUT_INIT_LOW, "LCD power 1" },
-	{ GPIO105_MAGICIAN_LCD_POWER_2, GPIOF_OUT_INIT_LOW, "LCD power 2" },
-	{ GPIO106_MAGICIAN_LCD_POWER_3, GPIOF_OUT_INIT_LOW, "LCD power 3" },
-	{ GPIO83_MAGICIAN_nIR_EN, GPIOF_OUT_INIT_HIGH, "nIR_EN" },
-};
-
 static void __init magician_init(void)
 {
 	void __iomem *cpld;
 	int lcd_select;
 	int err;
 
+	gpio_request(GPIO13_MAGICIAN_CPLD_IRQ, "CPLD_IRQ");
+	gpio_request(GPIO107_MAGICIAN_DS1WM_IRQ, "DS1WM_IRQ");
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(magician_pin_config));
-	err = gpio_request_array(ARRAY_AND_SIZE(magician_global_gpios));
-	if (err)
-		pr_err("magician: Failed to request GPIOs: %d\n", err);
 
 	pxa_set_ffuart_info(NULL);
 	pxa_set_btuart_info(NULL);
@@ -749,7 +729,11 @@ static void __init magician_init(void)
 
 	platform_add_devices(ARRAY_AND_SIZE(devices));
 
-	pxa_set_ficp_info(&magician_ficp_info);
+	err = gpio_request(GPIO83_MAGICIAN_nIR_EN, "nIR_EN");
+	if (!err) {
+		gpio_direction_output(GPIO83_MAGICIAN_nIR_EN, 1);
+		pxa_set_ficp_info(&magician_ficp_info);
+	}
 	pxa27x_set_i2c_power_info(NULL);
 	pxa_set_i2c_info(&i2c_info);
 	pxa_set_mci_info(&magician_mci_info);
@@ -763,9 +747,16 @@ static void __init magician_init(void)
 		system_rev = board_id & 0x7;
 		lcd_select = board_id & 0x8;
 		pr_info("LCD type: %s\n", lcd_select ? "Samsung" : "Toppoly");
-		if (lcd_select && (system_rev < 3))
-			gpio_request_one(GPIO75_MAGICIAN_SAMSUNG_POWER,
-			                 GPIOF_OUT_INIT_LOW, "SAMSUNG_POWER");
+		if (lcd_select && (system_rev < 3)) {
+			gpio_request(GPIO75_MAGICIAN_SAMSUNG_POWER, "SAMSUNG_POWER");
+			gpio_direction_output(GPIO75_MAGICIAN_SAMSUNG_POWER, 0);
+		}
+		gpio_request(GPIO104_MAGICIAN_LCD_POWER_1, "LCD_POWER_1");
+		gpio_request(GPIO105_MAGICIAN_LCD_POWER_2, "LCD_POWER_2");
+		gpio_request(GPIO106_MAGICIAN_LCD_POWER_3, "LCD_POWER_3");
+		gpio_direction_output(GPIO104_MAGICIAN_LCD_POWER_1, 0);
+		gpio_direction_output(GPIO105_MAGICIAN_LCD_POWER_2, 0);
+		gpio_direction_output(GPIO106_MAGICIAN_LCD_POWER_3, 0);
 		pxa_set_fb_info(NULL, lcd_select ? &samsung_info : &toppoly_info);
 	} else
 		pr_err("LCD detection: CPLD mapping failed\n");
@@ -773,12 +764,10 @@ static void __init magician_init(void)
 
 
 MACHINE_START(MAGICIAN, "HTC Magician")
-	.atag_offset = 0x100,
+	.boot_params = 0xa0000100,
 	.map_io = pxa27x_map_io,
 	.nr_irqs = MAGICIAN_NR_IRQS,
 	.init_irq = pxa27x_init_irq,
-	.handle_irq = pxa27x_handle_irq,
 	.init_machine = magician_init,
 	.timer = &pxa_timer,
-	.restart	= pxa_restart,
 MACHINE_END

@@ -9,7 +9,6 @@
  */
 #include <linux/init.h>
 #include <linux/kernel.h>
-#include <linux/errno.h>
 #include <asm/sram.h>
 
 /*

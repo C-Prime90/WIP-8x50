@@ -22,6 +22,7 @@
 #include <linux/module.h>
 #include <linux/bug.h>
 
+#include <asm/system.h>
 #include <asm/irq.h>
 #include <asm/traps.h>
 #include <asm/page.h>

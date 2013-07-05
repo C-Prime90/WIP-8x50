@@ -17,7 +17,7 @@
 #include <linux/list.h>
 #include <linux/lockdep.h>
 #include <linux/kobject_ns.h>
-#include <linux/atomic.h>
+#include <asm/atomic.h>
 
 struct kobject;
 struct module;
@@ -25,7 +25,7 @@ enum kobj_ns_type;
 
 struct attribute {
 	const char		*name;
-	umode_t			mode;
+	mode_t			mode;
 #ifdef CONFIG_DEBUG_LOCK_ALLOC
 	struct lock_class_key	*key;
 	struct lock_class_key	skey;
@@ -55,7 +55,7 @@ do {							\
 
 struct attribute_group {
 	const char		*name;
-	umode_t			(*is_visible)(struct kobject *,
+	mode_t			(*is_visible)(struct kobject *,
 					      struct attribute *, int);
 	struct attribute	**attrs;
 };
@@ -112,7 +112,6 @@ struct bin_attribute {
 struct sysfs_ops {
 	ssize_t	(*show)(struct kobject *, struct attribute *,char *);
 	ssize_t	(*store)(struct kobject *,struct attribute *,const char *, size_t);
-	const void *(*namespace)(struct kobject *, const struct attribute *);
 };
 
 struct sysfs_dirent;
@@ -133,7 +132,7 @@ int __must_check sysfs_create_file(struct kobject *kobj,
 int __must_check sysfs_create_files(struct kobject *kobj,
 				   const struct attribute **attr);
 int __must_check sysfs_chmod_file(struct kobject *kobj,
-				  const struct attribute *attr, umode_t mode);
+				  const struct attribute *attr, mode_t mode);
 void sysfs_remove_file(struct kobject *kobj, const struct attribute *attr);
 void sysfs_remove_files(struct kobject *kobj, const struct attribute **attr);
 
@@ -221,7 +220,7 @@ static inline int sysfs_create_files(struct kobject *kobj,
 }
 
 static inline int sysfs_chmod_file(struct kobject *kobj,
-				   const struct attribute *attr, umode_t mode)
+				   const struct attribute *attr, mode_t mode)
 {
 	return 0;
 }

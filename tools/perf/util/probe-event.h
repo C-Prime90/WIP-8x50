@@ -10,7 +10,6 @@ extern bool probe_event_dry_run;
 /* kprobe-tracer tracing point */
 struct probe_trace_point {
 	char		*symbol;	/* Base symbol */
-	char		*module;	/* Module name */
 	unsigned long	offset;		/* Offset from symbol */
 	bool		retprobe;	/* Return probe flag */
 };

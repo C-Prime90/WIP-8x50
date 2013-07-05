@@ -18,7 +18,7 @@
 #undef DEBUG
 
 #include <linux/kernel.h>
-#include <linux/export.h>
+#include <linux/module.h>
 #include <linux/sched.h>
 #include <linux/smp.h>
 #include <linux/interrupt.h>
@@ -27,13 +27,13 @@
 #include <linux/spinlock.h>
 #include <linux/cache.h>
 #include <linux/err.h>
-#include <linux/device.h>
+#include <linux/sysdev.h>
 #include <linux/cpu.h>
 #include <linux/notifier.h>
 #include <linux/topology.h>
 
 #include <asm/ptrace.h>
-#include <linux/atomic.h>
+#include <asm/atomic.h>
 #include <asm/irq.h>
 #include <asm/page.h>
 #include <asm/pgtable.h>
@@ -43,12 +43,12 @@
 #include <asm/machdep.h>
 #include <asm/cputhreads.h>
 #include <asm/cputable.h>
+#include <asm/system.h>
 #include <asm/mpic.h>
 #include <asm/vdso_datapage.h>
 #ifdef CONFIG_PPC64
 #include <asm/paca.h>
 #endif
-#include <asm/debug.h>
 
 #ifdef DEBUG
 #include <asm/udbg.h>
@@ -70,10 +70,6 @@
 static DEFINE_PER_CPU(struct task_struct *, idle_thread_array);
 #define get_idle_for_cpu(x)      (per_cpu(idle_thread_array, x))
 #define set_idle_for_cpu(x, p)   (per_cpu(idle_thread_array, x) = (p))
-
-/* State of each CPU during hotplug phases */
-static DEFINE_PER_CPU(int, cpu_state) = { 0 };
-
 #else
 static struct task_struct *idle_thread_array[NR_CPUS] __cpuinitdata ;
 #define get_idle_for_cpu(x)      (idle_thread_array[(x)])
@@ -108,25 +104,12 @@ int __devinit smp_generic_kick_cpu(int nr)
 	 * cpu_start field to become non-zero After we set cpu_start,
 	 * the processor will continue on to secondary_start
 	 */
-	if (!paca[nr].cpu_start) {
-		paca[nr].cpu_start = 1;
-		smp_mb();
-		return 0;
-	}
-
-#ifdef CONFIG_HOTPLUG_CPU
-	/*
-	 * Ok it's not there, so it might be soft-unplugged, let's
-	 * try to bring it back
-	 */
-	per_cpu(cpu_state, nr) = CPU_UP_PREPARE;
-	smp_wmb();
-	smp_send_reschedule(nr);
-#endif /* CONFIG_HOTPLUG_CPU */
+	paca[nr].cpu_start = 1;
+	smp_mb();
 
 	return 0;
 }
-#endif /* CONFIG_PPC64 */
+#endif
 
 static irqreturn_t call_function_action(int irq, void *data)
 {
@@ -187,8 +170,7 @@ int smp_request_message_ipi(int virq, int msg)
 		return 1;
 	}
 #endif
-	err = request_irq(virq, smp_ipi_action[msg],
-			  IRQF_PERCPU | IRQF_NO_THREAD,
+	err = request_irq(virq, smp_ipi_action[msg], IRQF_DISABLED|IRQF_PERCPU,
 			  smp_ipi_name[msg], 0);
 	WARN(err < 0, "unable to request_irq %d for %s (rc %d)\n",
 		virq, smp_ipi_name[msg], err);
@@ -215,16 +197,17 @@ void smp_muxed_ipi_message_pass(int cpu, int msg)
 	struct cpu_messages *info = &per_cpu(ipi_message, cpu);
 	char *message = (char *)&info->messages;
 
-	/*
-	 * Order previous accesses before accesses in the IPI handler.
-	 */
-	smp_mb();
 	message[msg] = 1;
-	/*
-	 * cause_ipi functions are required to include a full barrier
-	 * before doing whatever causes the IPI.
-	 */
+	mb();
 	smp_ops->cause_ipi(cpu, info->data);
+}
+
+void smp_muxed_ipi_resend(void)
+{
+	struct cpu_messages *info = &__get_cpu_var(ipi_message);
+
+	if (info->messages)
+		smp_ops->cause_ipi(smp_processor_id(), info->data);
 }
 
 irqreturn_t smp_ipi_demux(void)
@@ -235,7 +218,7 @@ irqreturn_t smp_ipi_demux(void)
 	mb();	/* order any irq clear */
 
 	do {
-		all = xchg(&info->messages, 0);
+		all = xchg_local(&info->messages, 0);
 
 #ifdef __BIG_ENDIAN
 		if (all & (1 << (24 - 8 * PPC_MSG_CALL_FUNCTION)))
@@ -255,26 +238,15 @@ irqreturn_t smp_ipi_demux(void)
 }
 #endif /* CONFIG_PPC_SMP_MUXED_IPI */
 
-static inline void do_message_pass(int cpu, int msg)
-{
-	if (smp_ops->message_pass)
-		smp_ops->message_pass(cpu, msg);
-#ifdef CONFIG_PPC_SMP_MUXED_IPI
-	else
-		smp_muxed_ipi_message_pass(cpu, msg);
-#endif
-}
-
 void smp_send_reschedule(int cpu)
 {
 	if (likely(smp_ops))
-		do_message_pass(cpu, PPC_MSG_RESCHEDULE);
+		smp_ops->message_pass(cpu, PPC_MSG_RESCHEDULE);
 }
-EXPORT_SYMBOL_GPL(smp_send_reschedule);
 
 void arch_send_call_function_single_ipi(int cpu)
 {
-	do_message_pass(cpu, PPC_MSG_CALL_FUNC_SINGLE);
+	smp_ops->message_pass(cpu, PPC_MSG_CALL_FUNC_SINGLE);
 }
 
 void arch_send_call_function_ipi_mask(const struct cpumask *mask)
@@ -282,7 +254,7 @@ void arch_send_call_function_ipi_mask(const struct cpumask *mask)
 	unsigned int cpu;
 
 	for_each_cpu(cpu, mask)
-		do_message_pass(cpu, PPC_MSG_CALL_FUNCTION);
+		smp_ops->message_pass(cpu, PPC_MSG_CALL_FUNCTION);
 }
 
 #if defined(CONFIG_DEBUGGER) || defined(CONFIG_KEXEC)
@@ -296,7 +268,7 @@ void smp_send_debugger_break(void)
 
 	for_each_online_cpu(cpu)
 		if (cpu != me)
-			do_message_pass(cpu, PPC_MSG_DEBUGGER_BREAK);
+			smp_ops->message_pass(cpu, PPC_MSG_DEBUGGER_BREAK);
 }
 #endif
 
@@ -331,10 +303,6 @@ struct thread_info *current_set[NR_CPUS];
 static void __devinit smp_store_cpu_info(int id)
 {
 	per_cpu(cpu_pvr, id) = mfspr(SPRN_PVR);
-#ifdef CONFIG_PPC_FSL_BOOK3E
-	per_cpu(next_tlbcam_idx, id)
-		= (mfspr(SPRN_TLB1CFG) & TLBnCFG_N_ENTRY) - 1;
-#endif
 }
 
 void __init smp_prepare_cpus(unsigned int max_cpus)
@@ -382,6 +350,8 @@ void __devinit smp_prepare_boot_cpu(void)
 }
 
 #ifdef CONFIG_HOTPLUG_CPU
+/* State of each CPU during hotplug phases */
+static DEFINE_PER_CPU(int, cpu_state) = { 0 };
 
 int generic_cpu_disable(void)
 {
@@ -428,11 +398,6 @@ void generic_mach_cpu_die(void)
 void generic_set_cpu_dead(unsigned int cpu)
 {
 	per_cpu(cpu_state, cpu) = CPU_DEAD;
-}
-
-int generic_check_cpu_restart(unsigned int cpu)
-{
-	return per_cpu(cpu_state, cpu) == CPU_UP_PREPARE;
 }
 #endif
 

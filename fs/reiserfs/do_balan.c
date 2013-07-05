@@ -17,7 +17,7 @@
 
 #include <asm/uaccess.h>
 #include <linux/time.h>
-#include "reiserfs.h"
+#include <linux/reiserfs_fs.h>
 #include <linux/buffer_head.h>
 #include <linux/kernel.h>
 

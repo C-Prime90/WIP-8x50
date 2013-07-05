@@ -22,23 +22,14 @@
 #include <asm/inat.h>
 #include <asm/insn.h>
 
-/* Verify next sizeof(t) bytes can be on the same instruction */
-#define validate_next(t, insn, n)	\
-	((insn)->next_byte + sizeof(t) + n - (insn)->kaddr <= MAX_INSN_SIZE)
-
-#define __get_next(t, insn)	\
-	({ t r = *(t*)insn->next_byte; insn->next_byte += sizeof(t); r; })
-
-#define __peek_nbyte_next(t, insn, n)	\
-	({ t r = *(t*)((insn)->next_byte + n); r; })
-
 #define get_next(t, insn)	\
-	({ if (unlikely(!validate_next(t, insn, 0))) goto err_out; __get_next(t, insn); })
+	({t r; r = *(t*)insn->next_byte; insn->next_byte += sizeof(t); r; })
+
+#define peek_next(t, insn)	\
+	({t r; r = *(t*)insn->next_byte; r; })
 
 #define peek_nbyte_next(t, insn, n)	\
-	({ if (unlikely(!validate_next(t, insn, n))) goto err_out; __peek_nbyte_next(t, insn, n); })
-
-#define peek_next(t, insn)	peek_nbyte_next(t, insn, 0)
+	({t r; r = *(t*)((insn)->next_byte + n); r; })
 
 /**
  * insn_init() - initialize struct insn
@@ -167,8 +158,6 @@ vex_end:
 	insn->vex_prefix.got = 1;
 
 	prefixes->got = 1;
-
-err_out:
 	return;
 }
 
@@ -185,8 +174,7 @@ err_out:
 void insn_get_opcode(struct insn *insn)
 {
 	struct insn_field *opcode = &insn->opcode;
-	insn_byte_t op;
-	int pfx_id;
+	insn_byte_t op, pfx;
 	if (opcode->got)
 		return;
 	if (!insn->prefixes.got)
@@ -203,7 +191,7 @@ void insn_get_opcode(struct insn *insn)
 		m = insn_vex_m_bits(insn);
 		p = insn_vex_p_bits(insn);
 		insn->attr = inat_get_avx_attribute(op, m, p);
-		if (!inat_accept_vex(insn->attr) && !inat_is_group(insn->attr))
+		if (!inat_accept_vex(insn->attr))
 			insn->attr = 0;	/* This instruction is bad */
 		goto end;	/* VEX has only 1 byte for opcode */
 	}
@@ -213,16 +201,13 @@ void insn_get_opcode(struct insn *insn)
 		/* Get escaped opcode */
 		op = get_next(insn_byte_t, insn);
 		opcode->bytes[opcode->nbytes++] = op;
-		pfx_id = insn_last_prefix_id(insn);
-		insn->attr = inat_get_escape_attribute(op, pfx_id, insn->attr);
+		pfx = insn_last_prefix(insn);
+		insn->attr = inat_get_escape_attribute(op, pfx, insn->attr);
 	}
 	if (inat_must_vex(insn->attr))
 		insn->attr = 0;	/* This instruction is bad */
 end:
 	opcode->got = 1;
-
-err_out:
-	return;
 }
 
 /**
@@ -236,7 +221,7 @@ err_out:
 void insn_get_modrm(struct insn *insn)
 {
 	struct insn_field *modrm = &insn->modrm;
-	insn_byte_t pfx_id, mod;
+	insn_byte_t pfx, mod;
 	if (modrm->got)
 		return;
 	if (!insn->opcode.got)
@@ -247,20 +232,15 @@ void insn_get_modrm(struct insn *insn)
 		modrm->value = mod;
 		modrm->nbytes = 1;
 		if (inat_is_group(insn->attr)) {
-			pfx_id = insn_last_prefix_id(insn);
-			insn->attr = inat_get_group_attribute(mod, pfx_id,
+			pfx = insn_last_prefix(insn);
+			insn->attr = inat_get_group_attribute(mod, pfx,
 							      insn->attr);
-			if (insn_is_avx(insn) && !inat_accept_vex(insn->attr))
-				insn->attr = 0;	/* This is bad */
 		}
 	}
 
 	if (insn->x86_64 && inat_is_force64(insn->attr))
 		insn->opnd_bytes = 8;
 	modrm->got = 1;
-
-err_out:
-	return;
 }
 
 
@@ -310,9 +290,6 @@ void insn_get_sib(struct insn *insn)
 		}
 	}
 	insn->sib.got = 1;
-
-err_out:
-	return;
 }
 
 
@@ -374,13 +351,10 @@ void insn_get_displacement(struct insn *insn)
 	}
 out:
 	insn->displacement.got = 1;
-
-err_out:
-	return;
 }
 
-/* Decode moffset16/32/64. Return 0 if failed */
-static int __get_moffset(struct insn *insn)
+/* Decode moffset16/32/64 */
+static void __get_moffset(struct insn *insn)
 {
 	switch (insn->addr_bytes) {
 	case 2:
@@ -397,19 +371,12 @@ static int __get_moffset(struct insn *insn)
 		insn->moffset2.value = get_next(int, insn);
 		insn->moffset2.nbytes = 4;
 		break;
-	default:	/* opnd_bytes must be modified manually */
-		goto err_out;
 	}
 	insn->moffset1.got = insn->moffset2.got = 1;
-
-	return 1;
-
-err_out:
-	return 0;
 }
 
-/* Decode imm v32(Iz). Return 0 if failed */
-static int __get_immv32(struct insn *insn)
+/* Decode imm v32(Iz) */
+static void __get_immv32(struct insn *insn)
 {
 	switch (insn->opnd_bytes) {
 	case 2:
@@ -421,18 +388,11 @@ static int __get_immv32(struct insn *insn)
 		insn->immediate.value = get_next(int, insn);
 		insn->immediate.nbytes = 4;
 		break;
-	default:	/* opnd_bytes must be modified manually */
-		goto err_out;
 	}
-
-	return 1;
-
-err_out:
-	return 0;
 }
 
-/* Decode imm v64(Iv/Ov), Return 0 if failed */
-static int __get_immv(struct insn *insn)
+/* Decode imm v64(Iv/Ov) */
+static void __get_immv(struct insn *insn)
 {
 	switch (insn->opnd_bytes) {
 	case 2:
@@ -449,18 +409,12 @@ static int __get_immv(struct insn *insn)
 		insn->immediate2.value = get_next(int, insn);
 		insn->immediate2.nbytes = 4;
 		break;
-	default:	/* opnd_bytes must be modified manually */
-		goto err_out;
 	}
 	insn->immediate1.got = insn->immediate2.got = 1;
-
-	return 1;
-err_out:
-	return 0;
 }
 
 /* Decode ptr16:16/32(Ap) */
-static int __get_immptr(struct insn *insn)
+static void __get_immptr(struct insn *insn)
 {
 	switch (insn->opnd_bytes) {
 	case 2:
@@ -473,17 +427,11 @@ static int __get_immptr(struct insn *insn)
 		break;
 	case 8:
 		/* ptr16:64 is not exist (no segment) */
-		return 0;
-	default:	/* opnd_bytes must be modified manually */
-		goto err_out;
+		return;
 	}
 	insn->immediate2.value = get_next(unsigned short, insn);
 	insn->immediate2.nbytes = 2;
 	insn->immediate1.got = insn->immediate2.got = 1;
-
-	return 1;
-err_out:
-	return 0;
 }
 
 /**
@@ -503,8 +451,7 @@ void insn_get_immediate(struct insn *insn)
 		insn_get_displacement(insn);
 
 	if (inat_has_moffset(insn->attr)) {
-		if (!__get_moffset(insn))
-			goto err_out;
+		__get_moffset(insn);
 		goto done;
 	}
 
@@ -532,20 +479,16 @@ void insn_get_immediate(struct insn *insn)
 		insn->immediate2.nbytes = 4;
 		break;
 	case INAT_IMM_PTR:
-		if (!__get_immptr(insn))
-			goto err_out;
+		__get_immptr(insn);
 		break;
 	case INAT_IMM_VWORD32:
-		if (!__get_immv32(insn))
-			goto err_out;
+		__get_immv32(insn);
 		break;
 	case INAT_IMM_VWORD:
-		if (!__get_immv(insn))
-			goto err_out;
+		__get_immv(insn);
 		break;
 	default:
-		/* Here, insn must have an immediate, but failed */
-		goto err_out;
+		break;
 	}
 	if (inat_has_second_immediate(insn->attr)) {
 		insn->immediate2.value = get_next(char, insn);
@@ -553,9 +496,6 @@ void insn_get_immediate(struct insn *insn)
 	}
 done:
 	insn->immediate.got = 1;
-
-err_out:
-	return;
 }
 
 /**

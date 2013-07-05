@@ -140,7 +140,7 @@ static int v9fs_dir_readdir(struct file *filp, void *dirent, filldir_t filldir)
 	int reclen = 0;
 	struct p9_rdir *rdir;
 
-	p9_debug(P9_DEBUG_VFS, "name %s\n", filp->f_path.dentry->d_name.name);
+	P9_DPRINTK(P9_DEBUG_VFS, "name %s\n", filp->f_path.dentry->d_name.name);
 	fid = filp->private_data;
 
 	buflen = fid->clnt->msize - P9_IOHDRSZ;
@@ -165,10 +165,11 @@ static int v9fs_dir_readdir(struct file *filp, void *dirent, filldir_t filldir)
 		}
 		while (rdir->head < rdir->tail) {
 			p9stat_init(&st);
-			err = p9stat_read(fid->clnt, rdir->buf + rdir->head,
-					  rdir->tail - rdir->head, &st);
+			err = p9stat_read(rdir->buf + rdir->head,
+						rdir->tail - rdir->head, &st,
+						fid->clnt->proto_version);
 			if (err) {
-				p9_debug(P9_DEBUG_VFS, "returned %d\n", err);
+				P9_DPRINTK(P9_DEBUG_VFS, "returned %d\n", err);
 				err = -EIO;
 				p9stat_free(&st);
 				goto unlock_and_exit;
@@ -213,7 +214,7 @@ static int v9fs_dir_readdir_dotl(struct file *filp, void *dirent,
 	struct p9_dirent curdirent;
 	u64 oldoffset = 0;
 
-	p9_debug(P9_DEBUG_VFS, "name %s\n", filp->f_path.dentry->d_name.name);
+	P9_DPRINTK(P9_DEBUG_VFS, "name %s\n", filp->f_path.dentry->d_name.name);
 	fid = filp->private_data;
 
 	buflen = fid->clnt->msize - P9_READDIRHDRSZ;
@@ -230,7 +231,7 @@ static int v9fs_dir_readdir_dotl(struct file *filp, void *dirent,
 	while (err == 0) {
 		if (rdir->tail == rdir->head) {
 			err = p9_client_readdir(fid, rdir->buf, buflen,
-						filp->f_pos);
+								filp->f_pos);
 			if (err <= 0)
 				goto unlock_and_exit;
 
@@ -240,11 +241,12 @@ static int v9fs_dir_readdir_dotl(struct file *filp, void *dirent,
 
 		while (rdir->head < rdir->tail) {
 
-			err = p9dirent_read(fid->clnt, rdir->buf + rdir->head,
-					    rdir->tail - rdir->head,
-					    &curdirent);
+			err = p9dirent_read(rdir->buf + rdir->head,
+						rdir->tail - rdir->head,
+						&curdirent,
+						fid->clnt->proto_version);
 			if (err < 0) {
-				p9_debug(P9_DEBUG_VFS, "returned %d\n", err);
+				P9_DPRINTK(P9_DEBUG_VFS, "returned %d\n", err);
 				err = -EIO;
 				goto unlock_and_exit;
 			}
@@ -290,8 +292,9 @@ int v9fs_dir_release(struct inode *inode, struct file *filp)
 	struct p9_fid *fid;
 
 	fid = filp->private_data;
-	p9_debug(P9_DEBUG_VFS, "inode: %p filp: %p fid: %d\n",
-		 inode, filp, fid ? fid->fid : -1);
+	P9_DPRINTK(P9_DEBUG_VFS,
+			"v9fs_dir_release: inode: %p filp: %p fid: %d\n",
+			inode, filp, fid ? fid->fid : -1);
 	if (fid)
 		p9_client_clunk(fid);
 	return 0;

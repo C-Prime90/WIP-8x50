@@ -31,6 +31,7 @@
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 #include <mach/mx25.h>
+#include <mach/audmux.h>
 
 #include "devices-imx25.h"
 
@@ -172,7 +173,7 @@ static struct platform_device eukrea_mbimxsd_lcd_powerdev = {
 	.dev.platform_data	= &eukrea_mbimxsd_lcd_power_data,
 };
 
-static const struct gpio_led eukrea_mbimxsd_leds[] __initconst = {
+static struct gpio_led eukrea_mbimxsd_leds[] = {
 	{
 		.name			= "led1",
 		.default_trigger	= "heartbeat",
@@ -181,10 +182,17 @@ static const struct gpio_led eukrea_mbimxsd_leds[] __initconst = {
 	},
 };
 
-static const struct gpio_led_platform_data
-		eukrea_mbimxsd_led_info __initconst = {
+static struct gpio_led_platform_data eukrea_mbimxsd_led_info = {
 	.leds		= eukrea_mbimxsd_leds,
 	.num_leds	= ARRAY_SIZE(eukrea_mbimxsd_leds),
+};
+
+static struct platform_device eukrea_mbimxsd_leds_gpio = {
+	.name	= "leds-gpio",
+	.id	= -1,
+	.dev	= {
+		.platform_data	= &eukrea_mbimxsd_led_info,
+	},
 };
 
 static struct gpio_keys_button eukrea_mbimxsd_gpio_buttons[] = {
@@ -204,6 +212,7 @@ static const struct gpio_keys_platform_data
 };
 
 static struct platform_device *platform_devices[] __initdata = {
+	&eukrea_mbimxsd_leds_gpio,
 	&eukrea_mbimxsd_lcd_powerdev,
 };
 
@@ -224,8 +233,7 @@ struct imx_ssi_platform_data eukrea_mbimxsd_ssi_pdata __initconst = {
 
 static struct esdhc_platform_data sd1_pdata = {
 	.cd_gpio = GPIO_SD1CD,
-	.cd_type = ESDHC_CD_GPIO,
-	.wp_type = ESDHC_WP_NONE,
+	.wp_gpio = -EINVAL,
 };
 
 /*
@@ -239,6 +247,22 @@ void __init eukrea_mbimxsd25_baseboard_init(void)
 	if (mxc_iomux_v3_setup_multiple_pads(eukrea_mbimxsd_pads,
 			ARRAY_SIZE(eukrea_mbimxsd_pads)))
 		printk(KERN_ERR "error setting mbimxsd pads !\n");
+
+#if defined(CONFIG_SND_SOC_EUKREA_TLV320)
+	/* SSI unit master I2S codec connected to SSI_AUD5*/
+	mxc_audmux_v2_configure_port(0,
+			MXC_AUDMUX_V2_PTCR_SYN |
+			MXC_AUDMUX_V2_PTCR_TFSDIR |
+			MXC_AUDMUX_V2_PTCR_TFSEL(4) |
+			MXC_AUDMUX_V2_PTCR_TCLKDIR |
+			MXC_AUDMUX_V2_PTCR_TCSEL(4),
+			MXC_AUDMUX_V2_PDCR_RXDSEL(4)
+	);
+	mxc_audmux_v2_configure_port(4,
+			MXC_AUDMUX_V2_PTCR_SYN,
+			MXC_AUDMUX_V2_PDCR_RXDSEL(0)
+	);
+#endif
 
 	imx25_add_imx_uart1(&uart_pdata);
 	imx25_add_imx_fb(&eukrea_mximxsd_fb_pdata);
@@ -263,6 +287,5 @@ void __init eukrea_mbimxsd25_baseboard_init(void)
 				ARRAY_SIZE(eukrea_mbimxsd_i2c_devices));
 
 	platform_add_devices(platform_devices, ARRAY_SIZE(platform_devices));
-	gpio_led_register_device(-1, &eukrea_mbimxsd_led_info);
 	imx_add_gpio_keys(&eukrea_mbimxsd_button_data);
 }

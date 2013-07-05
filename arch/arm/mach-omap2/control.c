@@ -15,11 +15,9 @@
 #include <linux/kernel.h>
 #include <linux/io.h>
 
-#include <plat/hardware.h>
+#include <plat/common.h>
 #include <plat/sdrc.h>
 
-#include "iomap.h"
-#include "common.h"
 #include "cm-regbits-34xx.h"
 #include "prm-regbits-34xx.h"
 #include "prm2xxx_3xxx.h"
@@ -151,11 +149,17 @@ static struct omap3_control_regs control_context;
 
 void __init omap2_set_globals_control(struct omap_globals *omap2_globals)
 {
-	if (omap2_globals->ctrl)
-		omap2_ctrl_base = omap2_globals->ctrl;
+	/* Static mapping, never released */
+	if (omap2_globals->ctrl) {
+		omap2_ctrl_base = ioremap(omap2_globals->ctrl, SZ_4K);
+		WARN_ON(!omap2_ctrl_base);
+	}
 
-	if (omap2_globals->ctrl_pad)
-		omap4_ctrl_pad_base = omap2_globals->ctrl_pad;
+	/* Static mapping, never released */
+	if (omap2_globals->ctrl_pad) {
+		omap4_ctrl_pad_base = ioremap(omap2_globals->ctrl_pad, SZ_4K);
+		WARN_ON(!omap4_ctrl_pad_base);
+	}
 }
 
 void __iomem *omap_ctrl_base_get(void)
@@ -282,15 +286,14 @@ void omap3_save_scratchpad_contents(void)
 	scratchpad_contents.boot_config_ptr = 0x0;
 	if (cpu_is_omap3630())
 		scratchpad_contents.public_restore_ptr =
-			virt_to_phys(omap3_restore_3630);
+			virt_to_phys(get_omap3630_restore_pointer());
 	else if (omap_rev() != OMAP3430_REV_ES3_0 &&
 					omap_rev() != OMAP3430_REV_ES3_1)
 		scratchpad_contents.public_restore_ptr =
-			virt_to_phys(omap3_restore);
+			virt_to_phys(get_restore_pointer());
 	else
 		scratchpad_contents.public_restore_ptr =
-			virt_to_phys(omap3_restore_es3);
-
+			virt_to_phys(get_es3_restore_pointer());
 	if (omap_type() == OMAP2_DEVICE_TYPE_GP)
 		scratchpad_contents.secure_ram_restore_ptr = 0x0;
 	else

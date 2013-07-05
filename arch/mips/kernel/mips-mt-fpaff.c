@@ -173,7 +173,7 @@ asmlinkage long mipsmt_sys_sched_getaffinity(pid_t pid, unsigned int len,
 	if (retval)
 		goto out_unlock;
 
-	cpumask_and(&mask, &p->thread.user_cpus_allowed, cpu_possible_mask);
+	cpus_and(mask, p->thread.user_cpus_allowed, cpu_possible_map);
 
 out_unlock:
 	read_unlock(&tasklist_lock);

@@ -1,9 +1,9 @@
 /*
  *  'Standard' SDIO HOST CONTROLLER driver
  *
- * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 1999-2011, Broadcom Corporation
  * 
- *      Unless you and Broadcom execute a separate written software license
+ *         Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
  * available at http://www.broadcom.com/licenses/GPLv2.php, with the
@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: bcmsdstd.h 343301 2012-07-06 13:07:32Z $
+ * $Id: bcmsdstd.h 324819 2012-03-30 12:15:19Z $
  */
 #ifndef	_BCM_SD_STD_H
 #define	_BCM_SD_STD_H
@@ -92,7 +92,6 @@ extern void sdstd_osfree(sdioh_info_t *sd);
 #define HC_INTR_RETUNING	0x1000
 
 
-
 struct sdioh_info {
 	uint cfg_bar;                   	/* pci cfg address for bar */
 	uint32 caps;                    	/* cached value of capabilities reg */
@@ -158,8 +157,8 @@ struct sdioh_info {
 					 * HOST_SDR_12_25: SDR12 and SDR25 supported
 					 * HOST_SDR_50_104_DDR: one of SDR50/SDR104 or DDR50 supptd
 					 */
-	volatile int	sd3_dat_state; 		/* data transfer state used for retuning check */
-	volatile int	sd3_tun_state; 		/* tuning state used for retuning check */
+	int	sd3_dat_state; 		/* data transfer state used for retuning check */
+	int	sd3_tun_state; 		/* tuning state used for retuning check */
 	bool	sd3_tuning_reqd; 	/* tuning requirement parameter */
 	uint32	caps3;			/* cached value of 32 MSbits capabilities reg (SDIO 3.0) */
 };
@@ -181,9 +180,9 @@ struct sdioh_info {
 
 #define DATA_TRANSFER_IDLE 		0
 #define DATA_TRANSFER_ONGOING	1
+#define CHECK_TUNING_PRE_DATA   1
+#define CHECK_TUNING_POST_DATA  2
 
-#define CHECK_TUNING_PRE_DATA	1
-#define CHECK_TUNING_POST_DATA	2
 
 /************************************************************
  * Internal interfaces: per-port references into bcmsdstd.c

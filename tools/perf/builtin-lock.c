@@ -12,7 +12,6 @@
 
 #include "util/debug.h"
 #include "util/session.h"
-#include "util/tool.h"
 
 #include <sys/types.h>
 #include <sys/prctl.h>
@@ -326,7 +325,7 @@ alloc_failed:
 	die("memory allocation failed\n");
 }
 
-static const char *input_name;
+static char			const *input_name = "perf.data";
 
 struct raw_event_sample {
 	u32			size;
@@ -846,13 +845,12 @@ static void dump_info(void)
 		die("Unknown type of information\n");
 }
 
-static int process_sample_event(struct perf_tool *tool __used,
-				union perf_event *event,
+static int process_sample_event(union perf_event *event,
 				struct perf_sample *sample,
 				struct perf_evsel *evsel __used,
-				struct machine *machine)
+				struct perf_session *s)
 {
-	struct thread *thread = machine__findnew_thread(machine, sample->tid);
+	struct thread *thread = perf_session__findnew(s, sample->tid);
 
 	if (thread == NULL) {
 		pr_debug("problem processing %d event, skipping it.\n",
@@ -865,7 +863,7 @@ static int process_sample_event(struct perf_tool *tool __used,
 	return 0;
 }
 
-static struct perf_tool eops = {
+static struct perf_event_ops eops = {
 	.sample			= process_sample_event,
 	.comm			= perf_event__process_comm,
 	.ordered_samples	= true,
@@ -922,12 +920,12 @@ static const struct option info_options[] = {
 	OPT_BOOLEAN('t', "threads", &info_threads,
 		    "dump thread list in perf.data"),
 	OPT_BOOLEAN('m', "map", &info_map,
-		    "map of lock instances (address:name table)"),
+		    "map of lock instances (name:address table)"),
 	OPT_END()
 };
 
 static const char * const lock_usage[] = {
-	"perf lock [<options>] {record|report|script|info}",
+	"perf lock [<options>] {record|trace|report}",
 	NULL
 };
 
@@ -944,10 +942,10 @@ static const char *record_args[] = {
 	"-f",
 	"-m", "1024",
 	"-c", "1",
-	"-e", "lock:lock_acquire",
-	"-e", "lock:lock_acquired",
-	"-e", "lock:lock_contended",
-	"-e", "lock:lock_release",
+	"-e", "lock:lock_acquire:r",
+	"-e", "lock:lock_acquired:r",
+	"-e", "lock:lock_contended:r",
+	"-e", "lock:lock_release:r",
 };
 
 static int __cmd_record(int argc, const char **argv)

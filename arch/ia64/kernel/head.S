@@ -30,6 +30,7 @@
 #include <asm/pgtable.h>
 #include <asm/processor.h>
 #include <asm/ptrace.h>
+#include <asm/system.h>
 #include <asm/mca_asm.h>
 #include <linux/init.h>
 #include <linux/linkage.h>

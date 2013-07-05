@@ -52,6 +52,8 @@ static int omap2_clkdm_clear_all_wkdeps(struct clockdomain *clkdm)
 	u32 mask = 0;
 
 	for (cd = clkdm->wkdep_srcs; cd && cd->clkdm_name; cd++) {
+		if (!omap_chip_is(cd->omap_chip))
+			continue;
 		if (!cd->clkdm)
 			continue; /* only happens if data is erroneous */
 
@@ -96,6 +98,8 @@ static int omap3_clkdm_clear_all_sleepdeps(struct clockdomain *clkdm)
 	u32 mask = 0;
 
 	for (cd = clkdm->sleepdep_srcs; cd && cd->clkdm_name; cd++) {
+		if (!omap_chip_is(cd->omap_chip))
+			continue;
 		if (!cd->clkdm)
 			continue; /* only happens if data is erroneous */
 
@@ -179,8 +183,7 @@ static int omap2_clkdm_clk_enable(struct clockdomain *clkdm)
 		_clkdm_add_autodeps(clkdm);
 		_enable_hwsup(clkdm);
 	} else {
-		if (clkdm->flags & CLKDM_CAN_FORCE_WAKEUP)
-			omap2_clkdm_wakeup(clkdm);
+		clkdm_wakeup(clkdm);
 	}
 
 	return 0;
@@ -202,8 +205,7 @@ static int omap2_clkdm_clk_disable(struct clockdomain *clkdm)
 		_clkdm_del_autodeps(clkdm);
 		_enable_hwsup(clkdm);
 	} else {
-		if (clkdm->flags & CLKDM_CAN_FORCE_SLEEP)
-			omap2_clkdm_sleep(clkdm);
+		clkdm_sleep(clkdm);
 	}
 
 	return 0;

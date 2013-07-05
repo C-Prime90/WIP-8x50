@@ -5,6 +5,7 @@
  * Copyright (C) 1998  Jakub Jelinek    (jj@ultra.linux.cz)
  */
 
+#include <linux/module.h>
 #include <linux/sched.h>
 #include <linux/linkage.h>
 #include <linux/ptrace.h>
@@ -25,7 +26,8 @@
 
 #include <asm/ptrace.h>
 #include <asm/processor.h>
-#include <linux/atomic.h>
+#include <asm/atomic.h>
+#include <asm/system.h>
 #include <asm/irq.h>
 #include <asm/io.h>
 #include <asm/iommu.h>

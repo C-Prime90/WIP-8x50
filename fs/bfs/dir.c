@@ -84,7 +84,7 @@ const struct file_operations bfs_dir_operations = {
 
 extern void dump_imap(const char *, struct super_block *);
 
-static int bfs_create(struct inode *dir, struct dentry *dentry, umode_t mode,
+static int bfs_create(struct inode *dir, struct dentry *dentry, int mode,
 						struct nameidata *nd)
 {
 	int err;
@@ -199,7 +199,7 @@ static int bfs_unlink(struct inode *dir, struct dentry *dentry)
 		printf("unlinking non-existent file %s:%lu (nlink=%d)\n",
 					inode->i_sb->s_id, inode->i_ino,
 					inode->i_nlink);
-		set_nlink(inode, 1);
+		inode->i_nlink = 1;
 	}
 	de->ino = 0;
 	mark_buffer_dirty_inode(bh, dir);
