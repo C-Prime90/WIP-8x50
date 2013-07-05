@@ -16,16 +16,19 @@
 #include <linux/i2c.h>
 #include <linux/slab.h>
 #include <linux/miscdevice.h>
-#include <asm/uaccess.h>
 #include <linux/delay.h>
 #include <linux/input.h>
 #include <linux/bma150_spi.h>
-#include <asm/gpio.h>
-#include <linux/earlysuspend.h>
 #include <linux/platform_device.h>
+#include <asm/gpio.h>
+#include <asm/uaccess.h>
 #include <mach/atmega_microp.h>
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#include <linux/earlysuspend.h>
+
 struct early_suspend bma_early_suspend;
+#endif
 
 static struct bma150_platform_data *this_pdata;
 
@@ -376,6 +379,7 @@ static struct miscdevice spi_bma_device = {
 	.fops = &spi_bma_fops,
 };
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 static void bma150_early_suspend(struct early_suspend *handler)
 {
 	int ret = 0;
@@ -392,6 +396,7 @@ static void bma150_early_resume(struct early_suspend *handler)
 		"%s: spi_bma150_set_mode returned = %d!\n",
 			__func__, ret);*/
 }
+#endif
 
 static int spi_gsensor_initial(void)
 {
@@ -435,9 +440,11 @@ static int spi_gsensor_initial(void)
 		goto err_set_mode;
 	}
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	bma_early_suspend.suspend = bma150_early_suspend;
 	bma_early_suspend.resume = bma150_early_resume;
 	register_early_suspend(&bma_early_suspend);
+#endif
 
 	return 0;
 
@@ -449,7 +456,7 @@ err_spi_enable:
 	return ret;
 }
 
-static int  spi_bma150_probe(struct platform_device *pdev)
+static int spi_bma150_probe(struct platform_device *pdev)
 {
 	printk(KERN_INFO "%s: G-sensor connect with microP: "
 			"start initial\n", __func__);
