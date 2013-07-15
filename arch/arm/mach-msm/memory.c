@@ -238,7 +238,7 @@ static void __init calculate_reserve_limits(void)
 	for (i = 0, mb = &meminfo.bank[0]; i < meminfo.nr_banks; i++, mb++)  {
 		memtype = reserve_info->paddr_to_memtype(mb->start);
 		if (memtype == MEMTYPE_NONE) {
-			pr_warning("unknown memory type for bank at %lx\n",
+			pr_warning("unknown memory type for bank at %zx\n",
 				mb->start);
 			continue;
 		}
