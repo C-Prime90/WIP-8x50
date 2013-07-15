@@ -15,6 +15,7 @@
 #include <linux/range.h>
 #include <linux/pfn.h>
 #include <linux/bit_spinlock.h>
+#include <linux/sched.h>
 
 struct mempolicy;
 struct anon_vma;

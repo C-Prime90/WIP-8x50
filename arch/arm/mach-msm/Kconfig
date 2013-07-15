@@ -210,4 +210,10 @@ config IOMMU_API
 
 config MSM_SCM
 	bool
+
+config PHYS_OFFSET
+	hex "Physical Offset"
+	default "0x00000000" if ARCH_QSD8X50 && MSM_SOC_REV_A
+	default "0x20000000" if ARCH_QSD8X50
+	default "0x10000000"
 endif
