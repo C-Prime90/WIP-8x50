@@ -35,7 +35,7 @@
 
 #if defined(CONFIG_ARCH_MSM7X30)
 
-#define EBI0_PHYS_OFFSET PHYS_OFFSET
+#define EBI0_PHYS_OFFSET PLAT_PHYS_OFFSET
 #define EBI0_PAGE_OFFSET PAGE_OFFSET
 #define EBI0_SIZE 0x10000000
 
@@ -92,7 +92,7 @@ extern void store_ttbr0(void);
 extern unsigned long membank0_size;
 extern unsigned long membank1_start;
 
-#define MEMBANK0_PHYS_OFFSET PHYS_OFFSET
+#define MEMBANK0_PHYS_OFFSET PLAT_PHYS_OFFSET
 #define MEMBANK0_PAGE_OFFSET PAGE_OFFSET
 
 #define MEMBANK1_PHYS_OFFSET (membank1_start)
