@@ -625,10 +625,11 @@ config ARCH_PXA
 	  Support for Intel/Marvell's PXA2xx/PXA3xx processor line.
 
 config ARCH_MSM
-	bool "Qualcomm MSM"
+	bool "Qualcomm MSM/QSD"
 	select HAVE_CLK
 	select GENERIC_CLOCKEVENTS
 	select ARCH_REQUIRE_GPIOLIB
+	select GENERIC_ALLOCATOR
 	select CLKDEV_LOOKUP
 	help
 	  Support for Qualcomm MSM/QSD based systems.  This runs on the
