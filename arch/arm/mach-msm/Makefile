@@ -28,8 +28,6 @@ obj-$(CONFIG_MSM_SCM) += scm.o scm-boot.o
 obj-$(CONFIG_HOTPLUG_CPU) += hotplug.o
 obj-$(CONFIG_SMP) += headsmp.o platsmp.o
 
-obj-$(CONFIG_MSM_QDSP6) += qdsp6/
-
 obj-$(CONFIG_MACH_TROUT) += board-trout.o board-trout-gpio.o board-trout-mmc.o devices-msm7x00.o
 obj-$(CONFIG_MACH_TROUT) += board-trout.o board-trout-gpio.o board-trout-mmc.o board-trout-panel.o devices-msm7x00.o
 obj-$(CONFIG_MACH_HALIBUT) += board-halibut.o devices-msm7x00.o
@@ -74,6 +72,6 @@ obj-$(CONFIG_ARCH_MSM_SCORPION) += arch-init-scorpion.o
 
 #obj-$(CONFIG_ARCH_QSD8X50) += acpuclock-qsd8x50.o
 
-#obj-$(CONFIG_MSM_CPU_AVS) += avs.o avs_hw.o
+obj-$(CONFIG_MSM_CPU_AVS) += avs.o avs_hw.o
 
-#obj-$(CONFIG_MSM_QDSP6) += qdsp6/
+obj-$(CONFIG_MSM_QDSP6) += qdsp6/

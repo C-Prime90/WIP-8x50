@@ -228,6 +228,19 @@ config IOMMU_API
 config MSM_SCM
 	bool
 
+config QSD_SVS
+	bool
+
+config MSM_CPU_AVS
+	bool "Enable Hybrid Adaptive Voltage Scaling (HAVS)"
+	depends on ARCH_MSM_SCORPION
+	select QSD_SVS
+	default y
+	help
+	  This enables the Adaptive Voltage Scaling feature of
+	  Qualcomm ARMv7 CPUs. It adjusts the voltage for each frequency
+	  based on feedback from three ring
+
 config PHYS_OFFSET
 	hex "Physical Offset"
 	default "0x00000000" if ARCH_QSD8X50 && MSM_SOC_REV_A
