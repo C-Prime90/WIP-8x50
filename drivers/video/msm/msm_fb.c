@@ -36,8 +36,10 @@
 #include "mdp_hw.h"
 
 extern void start_drawing_late_resume(struct early_suspend *h);
+#ifdef CONFIG_HAS_EARLYSUSPEND
 static void msmfb_resume_handler(struct early_suspend *h);
 static void msmfb_resume(struct work_struct *work);
+#endif
 
 #ifdef CONFIG_MSM_HDMI
 void hdmi_DoBlit(int offset);
@@ -83,7 +85,9 @@ module_param_named(msmfb_debug_mask, msmfb_debug_mask, int,
 		   S_IRUGO | S_IWUSR | S_IWGRP);
 
 struct mdp_device *mdp;
+#ifdef CONFIG_HAS_EARLYSUSPEND
 static atomic_t mdpclk_on = ATOMIC_INIT(1);
+#endif
 
 struct msmfb_info {
 	struct fb_info *fb;
