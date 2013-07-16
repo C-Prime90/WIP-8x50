@@ -60,9 +60,9 @@ obj-$(CONFIG_MSM_DAL) += dal.o
 
 #obj-$(CONFIG_HTC_PWRSPLY) += htc_power_supply.o
 
-#obj-$(CONFIG_MSM_ONCRPCROUTER) += smd_rpcrouter.o
-#obj-$(CONFIG_MSM_ONCRPCROUTER) += smd_rpcrouter_device.o
-#obj-$(CONFIG_MSM_ONCRPCROUTER) += smd_rpcrouter_servers.o
+obj-$(CONFIG_MSM_ONCRPCROUTER) += smd_rpcrouter.o
+obj-$(CONFIG_MSM_ONCRPCROUTER) += smd_rpcrouter_device.o
+obj-$(CONFIG_MSM_ONCRPCROUTER) += smd_rpcrouter_servers.o
 
 #obj-$(CONFIG_HTC_ACOUSTIC_QSD) += htc_acoustic_qsd.o
 
