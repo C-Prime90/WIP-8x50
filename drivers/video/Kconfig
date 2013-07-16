@@ -25,6 +25,8 @@ source "drivers/gpu/stub/Kconfig"
 
 source "drivers/gpu/ion/Kconfig"
 
+source "drivers/video/msm/Kconfig"
+
 config VGASTATE
        tristate
        default n
@@ -2322,13 +2324,6 @@ config FB_PRE_INIT_FB
 	---help---
 	  Select this option if display contents should be inherited as set by
 	  the bootloader.
-
-config FB_MSM
-	tristate "MSM Framebuffer support"
-	depends on FB && ARCH_MSM
-	select FB_CFB_FILLRECT
-	select FB_CFB_COPYAREA
-	select FB_CFB_IMAGEBLIT
 
 config FB_MX3
 	tristate "MX3 Framebuffer support"

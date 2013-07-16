@@ -61,11 +61,13 @@ endchoice
 
 config MSM_SOC_REV_A
 	bool
+
 config  ARCH_MSM_SCORPIONMP
 	bool
 
 config  ARCH_MSM_ARM11
 	bool
+
 config  ARCH_MSM_SCORPION
 	bool
 
@@ -74,6 +76,21 @@ config HAS_MSM_DEBUG_UART_PHYS
 
 config  MSM_VIC
 	bool
+
+config MSM_MDP22
+	bool
+	depends on ARCH_MSM7X00A
+	default y
+
+config MSM_MDP31
+	bool
+	depends on ARCH_QSD8X50
+	default y
+
+config MSM_MDP40
+	bool
+	depends on ARCH_MSM7X30
+	default y
 
 menu "Qualcomm MSM Board Type"
 
