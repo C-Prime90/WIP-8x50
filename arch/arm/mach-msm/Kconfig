@@ -274,6 +274,12 @@ config QDSP6_2WCR
 	help
 	  Enable support for 2 way call recording. (BEWARE: This may be illegal in some places)
 
+config ARCH_MSM_FLASHLIGHT
+        bool "Flashlight Driver"
+        depends on ARCH_MSM
+        help
+          The flashlight driver is for MSM series.
+
 config MSM_FIQ_SUPPORT
 	default y
 	bool "Enable installation of an FIQ handler."
