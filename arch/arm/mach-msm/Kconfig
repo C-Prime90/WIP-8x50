@@ -260,6 +260,14 @@ config MSM_ONCRPCROUTER
 	  Support for the MSM ONCRPC router for communication between
 	  the ARM9 and ARM11
 
+config HTC_ACOUSTIC_QSD
+        tristate "HTC acoustic driver for QSD"
+        depends on ARCH_QSD8X50
+        default y
+        help
+          Provides user space use shared memory allocate by using RPC code.
+          Provides headset amp, mic bias and speaker amp control.
+
 config MSM_QDSP6
 	tristate "QDSP6 support"
 	depends on ARCH_QSD8X50
