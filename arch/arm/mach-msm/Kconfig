@@ -238,6 +238,14 @@ config PHYS_OFFSET
 	default "0x10000000"
 endif
 
+config MSM_DAL
+	default n
+	bool "MSM Driver Access Layer (DAL RPC)"
+	help
+	  Support for the DAL RPC interface used to communicate with
+	  the baseband processor or DSP in newer Qualcomm MSM/QSD
+	  chips.
+
 config MSM_QDSP6
 	tristate "QDSP6 support"
 	depends on ARCH_QSD8X50
