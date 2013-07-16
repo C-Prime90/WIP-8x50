@@ -14,7 +14,6 @@
  */
 
 #include <linux/kernel.h>
-#include <linux/mtd/mtd.h>
 #include <linux/mtd/nand.h>
 #include <linux/mtd/partitions.h>
 #include <linux/platform_device.h>
@@ -30,6 +29,7 @@
 
 #include <mach/dma.h>
 
+#include "../mtdcore.h"
 #include "msm_nand.h"
 
 #define MSM_NAND_DMA_BUFFER_SIZE SZ_4K
