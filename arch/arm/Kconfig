@@ -69,7 +69,6 @@ config GENERIC_CLOCKEVENTS_BROADCAST
 
 config KTIME_SCALAR
 	bool
-	default y
 
 config HAVE_TCM
 	bool
