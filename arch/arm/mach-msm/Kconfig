@@ -238,6 +238,12 @@ config PHYS_OFFSET
 	default "0x10000000"
 endif
 
+config HTC_35MM_JACK
+	bool "HTC 3.5mm headset jack"
+	default n
+	help
+	 Provides support for 3.5mm headset jack devices, like wired headsets.
+
 config MSM_DAL
 	default n
 	bool "MSM Driver Access Layer (DAL RPC)"
