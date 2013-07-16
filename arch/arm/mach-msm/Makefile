@@ -3,11 +3,11 @@ obj-y += io.o timer.o clock.o socinfo.o memory.o
 #obj-y += pmic.o gpio.o nand_partitions.o
 #obj-y += pm.o memory.o display/ 
 
-#ifdef CPU_V7
-#obj-y += idle-v7.o
-#else
+ifdef CONFIG_CPU_V7
+obj-y += idle-v7.o
+else
 obj-y += idle.o
-#endif
+endif
 
 obj-$(CONFIG_DEBUG_FS) += clock-debug.o
 
