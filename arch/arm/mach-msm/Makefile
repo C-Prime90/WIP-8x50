@@ -66,7 +66,7 @@ obj-$(CONFIG_MSM_DAL) += dal.o
 
 #obj-$(CONFIG_HTC_ACOUSTIC_QSD) += htc_acoustic_qsd.o
 
-#obj-$(CONFIG_MSM_FIQ_SUPPORT) += fiq_glue.o
+obj-$(CONFIG_MSM_FIQ_SUPPORT) += fiq_glue.o
 
 #obj-$(CONFIG_CPU_FREQ_MSM) += cpufreq.o
 

@@ -259,3 +259,7 @@ config QDSP6_2WCR
 	default n
 	help
 	  Enable support for 2 way call recording. (BEWARE: This may be illegal in some places)
+
+config MSM_FIQ_SUPPORT
+	default y
+	bool "Enable installation of an FIQ handler."
