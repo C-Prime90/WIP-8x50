@@ -244,3 +244,10 @@ config MSM_QDSP6
 	default y
 	help
 	  Enable support for qdsp6. This provides audio and video functionality.
+
+config QDSP6_2WCR
+	bool "2WCR support"
+	depends on MSM_QDSP6
+	default n
+	help
+	  Enable support for 2 way call recording. (BEWARE: This may be illegal in some places)
