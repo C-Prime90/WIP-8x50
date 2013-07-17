@@ -172,8 +172,6 @@
  * -This is a quick fix that is likely to be removed later
  */
 
-#define MSM_TMR0_BASE		MSM_TMR_BASE
-
 #define QSD8X50_CSR_PHYS	MSM_CSR_PHYS
 #define QSD8X50_CSR_SIZE	MSM_CSR_SIZE
 

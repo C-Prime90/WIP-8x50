@@ -61,7 +61,9 @@
 #define MSM_QGIC_DIST_BASE	IOMEM(0xF0000000)
 #define MSM_QGIC_CPU_BASE	IOMEM(0xF0001000)
 #define MSM_TMR_BASE		IOMEM(0xF0200000)
+#if 0 /* Not used with 2.6.38 timer */
 #define MSM_TMR0_BASE		IOMEM(0xF0201000)
+#endif
 
 #endif
 #endif
