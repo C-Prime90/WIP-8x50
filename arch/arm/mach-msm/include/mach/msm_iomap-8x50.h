@@ -167,14 +167,4 @@
 #define MSM_SPI_PHYS		0xA1200000
 #define MSM_SPI_SIZE		SZ_4K
 
-/*
- * Start compatibility for 3.0.76
- * -This is a quick fix that is likely to be removed later
- */
-
-#define QSD8X50_CSR_PHYS	MSM_CSR_PHYS
-#define QSD8X50_CSR_SIZE	MSM_CSR_SIZE
-
-// End compatibility for 3.0.76
-
 #endif

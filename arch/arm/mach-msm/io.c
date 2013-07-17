@@ -74,7 +74,8 @@ void __init msm_map_common_io(void)
 #ifdef CONFIG_ARCH_QSD8X50
 static struct map_desc qsd8x50_io_desc[] __initdata = {
 	MSM_DEVICE(VIC),
-	MSM_CHIP_DEVICE(CSR, QSD8X50),
+	MSM_DEVICE(CSR),
+	MSM_DEVICE(TMR),
 	MSM_DEVICE(DMOV),
 	MSM_DEVICE(GPIO1),
 	MSM_DEVICE(GPIO2),
@@ -83,6 +84,7 @@ static struct map_desc qsd8x50_io_desc[] __initdata = {
 	MSM_DEVICE(SCPLL),
 	MSM_DEVICE(AD5),
 	MSM_DEVICE(MDC),
+	MSM_DEVICE(TCSR),
 #ifdef CONFIG_MSM_DEBUG_UART
 	MSM_DEVICE(DEBUG_UART),
 #endif
@@ -96,6 +98,19 @@ static struct map_desc qsd8x50_io_desc[] __initdata = {
 
 void __init msm_map_qsd8x50_io(void)
 {
+	unsigned int unused;
+
+	/* The bootloader may not have done it, so disable predecode repair
+	 * cache for thumb2 (DPRC, set bit 4 in PVR0F2) due to a bug.
+	 */
+	asm volatile ("mrc p15, 0, %0, c15, c15, 2\n\t"
+		      "orr %0, %0, #0x10\n\t"
+		      "mcr p15, 0, %0, c15, c15, 2"
+		      : "=&r" (unused));
+	/* clear out EFSR and ADFSR on boot */
+	asm volatile ("mcr p15, 7, %0, c15, c0, 1\n\t"
+		      "mcr p15, 0, %0, c5, c1, 0"
+		      : : "r" (0));
 	iotable_init(qsd8x50_io_desc, ARRAY_SIZE(qsd8x50_io_desc));
 }
 #endif /* CONFIG_ARCH_QSD8X50 */
@@ -165,6 +180,7 @@ void __init msm_map_msm7x30_io(void)
 void __iomem *
 __msm_ioremap(unsigned long phys_addr, size_t size, unsigned int mtype)
 {
+#ifdef CONFIG_ARCH_MSM_ARM11
 	if (mtype == MT_DEVICE) {
 		/* The peripherals in the 88000000 - D0000000 range
 		 * are only accessible by type MT_DEVICE_NONSHARED.
@@ -173,6 +189,7 @@ __msm_ioremap(unsigned long phys_addr, size_t size, unsigned int mtype)
 		if ((phys_addr >= 0x88000000) && (phys_addr < 0xD0000000))
 			mtype = MT_DEVICE_NONSHARED;
 	}
+#endif /* CONFIG_ARCH_MSM_ARM11 */
 
 	return __arm_ioremap_caller(phys_addr, size, mtype,
 		__builtin_return_address(0));
