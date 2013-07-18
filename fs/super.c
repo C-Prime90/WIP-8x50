@@ -847,6 +847,24 @@ error:
 }
 EXPORT_SYMBOL(mount_bdev);
 
+
+int get_sb_bdev(struct file_system_type *fs_type,
+	int flags, const char *dev_name, void *data,
+	int (*fill_super)(struct super_block *, void *, int),
+	struct vfsmount *mnt)
+{
+	struct dentry *root;
+
+	root = mount_bdev(fs_type, flags, dev_name, data, fill_super);
+	if (IS_ERR(root))
+		return PTR_ERR(root);
+	mnt->mnt_root = root;
+	mnt->mnt_sb = root->d_sb;
+	return 0;
+}
+
+EXPORT_SYMBOL(get_sb_bdev);
+
 void kill_block_super(struct super_block *sb)
 {
 	struct block_device *bdev = sb->s_bdev;
