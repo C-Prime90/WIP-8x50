@@ -140,10 +140,6 @@ config USB_MSM_72K
 	default USB_GADGET
 	select USB_GADGET_SELECTED
 
-config USB_MSM_72K_HTC
-	boolean "Use HTC driver variant"
-	depends on USB_MSM_72K
-
 endchoice # USB Peripheral Controller
 
 config USB_GADGET_DUALSPEED
@@ -248,7 +244,7 @@ config USB_CSW_HACK
 
 endchoice # USB Gadget Drivers
 
-if USB_MSM_72K_HTC
+if MICROP_COMMON
 
 config USB_ACCESSORY_DETECT
         boolean "USB ACCESSORY DETECT"
@@ -270,7 +266,7 @@ config USB_BYPASS_VBUS_NOTIFY
         depends on USB_ANDROID
         default n
 
-endif # USB_MSM_72K_HTC
+endif # CONFIG_MICROP_COMMON
 
 endif # USB_GADGET
 
