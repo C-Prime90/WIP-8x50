@@ -9,8 +9,6 @@ else
 obj-y += idle.o
 endif
 
-obj-$(CONFIG_DEBUG_FS) += clock-debug.o
-
 obj-$(CONFIG_MSM_VIC) += irq-vic.o
 obj-$(CONFIG_MSM_IOMMU) += iommu.o iommu_dev.o devices-iommu.o
 
