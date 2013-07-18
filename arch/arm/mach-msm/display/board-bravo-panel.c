@@ -1,4 +1,4 @@
-/* arch/arm/mach-msm/board-bravo-panel.c
+/* arch/arm/mach-msm/display/board-bravo-panel.c
  *
  * Copyright (c) 2009 Google Inc.
  * Author: Dima Zavin <dima@android.com>
@@ -32,10 +32,10 @@
 #include <mach/msm_iomap.h>
 #include <mach/vreg.h>
 #include <mach/board-bravo-microp-common.h>
-#include "proc_comm.h"
 
-#include "board-bravo.h"
-#include "devices.h"
+#include "../proc_comm.h"
+#include "../board-bravo.h"
+#include "../devices.h"
 
 #define SPI_CONFIG		(0x00000000)
 #define SPI_IO_CONTROL		(0x00000004)
