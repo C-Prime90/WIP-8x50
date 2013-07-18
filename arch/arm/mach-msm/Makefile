@@ -52,7 +52,7 @@ obj-$(CONFIG_ARCH_MSM_FLASHLIGHT) += msm_flashlight.o
 
 obj-$(CONFIG_MSM_DAL) += dal.o
 
-#obj-$(CONFIG_REGULATOR) += footswitch-pcom.o
+obj-$(CONFIG_REGULATOR) += footswitch-pcom.o
 
 #obj-$(CONFIG_HTC_PWRSPLY) += htc_power_supply.o
 
