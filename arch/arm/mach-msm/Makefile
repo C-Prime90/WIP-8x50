@@ -49,7 +49,7 @@ obj-y	+= gpio.o
 endif
 
 ifneq ($(call ifdef_any_of,CONFIG_MACH_BRAVO CONFIG_MACH_BRAVOC),)
-obj-y += #board-bravo.o
+obj-y += board-bravo.o
 obj-y += board-bravo-keypad.o board-bravo-mmc.o
 obj-y += board-bravo-rfkill.o htc_wifi_nvs.o htc_awb_cal.o
 obj-y += board-bravo-wifi.o board-bravo-audio.o
