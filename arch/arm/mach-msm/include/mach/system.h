@@ -26,3 +26,7 @@ static inline void arch_reset(char mode, const char *cmd)
  * PSHOLD line on the PMIC to hard reset the system
  */
 extern void (*msm_hw_reset_hook)(void);
+
+void msm_set_i2c_mux(bool gpio, int *gpio_clk, int *gpio_dat);
+
+void msm_i2c_gpio_init(void);
