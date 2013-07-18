@@ -717,9 +717,9 @@ static int microp_i2c_probe(struct i2c_client *client
 			dev_err(&client->dev, "request_irq failed\n");
 			goto err_intr;
 		}
-		ret = set_irq_wake(client->irq, 1);
+		ret = irq_set_irq_wake(client->irq, 1);
 		if (ret) {
-			dev_err(&client->dev, "set_irq_wake failed\n");
+			dev_err(&client->dev, "irq_set_irq_wake failed\n");
 			goto err_intr;
 		}
 	}
@@ -810,8 +810,8 @@ static int __init microp_common_init(void)
 	int n, MICROP_IRQ_END = FIRST_MICROP_IRQ + NR_MICROP_IRQS;
 
 	for (n = FIRST_MICROP_IRQ; n < MICROP_IRQ_END; n++) {
-		set_irq_chip(n, &microp_irq_chip);
-		set_irq_handler(n, handle_level_irq);
+		irq_set_chip(n, &microp_irq_chip);
+		irq_set_handler(n, handle_level_irq);
 		set_irq_flags(n, IRQF_VALID);
 	}
 

@@ -96,7 +96,9 @@ obj-y += board-bravo-keypad.o board-bravo-mmc.o
 obj-y += board-bravo-rfkill.o htc_wifi_nvs.o htc_awb_cal.o
 obj-y += board-bravo-wifi.o board-bravo-audio.o
 obj-y += msm_vibrator.o
+ifndef CONFIG_MICROP_COMMON
 obj-y += board-bravo-microp.o
+endif
 obj-y += board-bravo-tpa2018d1.o
 obj-y += board-bravo-smb329.o
 endif
