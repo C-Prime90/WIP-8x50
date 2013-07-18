@@ -1,5 +1,5 @@
 obj-y += io.o timer.o clock.o socinfo.o memory.o
-obj-y += htc_board_tags.o #drv_callback.o
+obj-y += htc_board_tags.o drv_callback.o
 #obj-y += pmic.o gpio.o nand_partitions.o
 #obj-y += pm.o memory.o display/ 
 
