@@ -231,16 +231,6 @@ config MSM_SCM
 config QSD_SVS
 	bool
 
-config MSM_CPU_AVS
-	bool "Enable Hybrid Adaptive Voltage Scaling (HAVS)"
-	depends on ARCH_MSM_SCORPION
-	select QSD_SVS
-	default y
-	help
-	  This enables the Adaptive Voltage Scaling feature of
-	  Qualcomm ARMv7 CPUs. It adjusts the voltage for each frequency
-	  based on feedback from three ring
-
 config PHYS_OFFSET
 	hex "Physical Offset"
 	default "0x00000000" if ARCH_QSD8X50 && MSM_SOC_REV_A
@@ -256,6 +246,13 @@ config HTC_35MM_JACK
 	default n
 	help
 	 Provides support for 3.5mm headset jack devices, like wired headsets.
+
+config HTC_PWRSPLY
+	depends on MSM_ONCRPCROUTER && POWER_SUPPLY && !TROUT_BATTCHG
+	default y
+	bool "HTC Power supply driver"
+	help
+	  Used by HTC devices with a dedicated battery gauge"
 
 config MSM_DAL
 	default n
@@ -304,3 +301,50 @@ config ARCH_MSM_FLASHLIGHT
 config MSM_FIQ_SUPPORT
 	default y
 	bool "Enable installation of an FIQ handler."
+
+config EXPERIMENTAL_FREQ_TABLE
+	depends on ARCH_QSD8X50
+        default n
+	bool "Use experimental 8X50 freq table"
+        help
+          Allow the use of experimental frequencies upto 1850Mhz for QSD8X50.
+
+##Disabled until ready
+#if CPU_FREQ_MSM
+
+#config MSM_CPU_FREQ_SET_MIN_MAX
+#       bool "Set Min/Max CPU frequencies."
+#       default n
+#       help
+#         Allow setting min and max CPU frequencies. Sysfs can be used
+#         to override these values.
+
+#config MSM_CPU_FREQ_MAX
+#       int "Max CPU Frequency"
+#       depends on MSM_CPU_FREQ_SET_MIN_MAX
+#       default 384000
+
+#config MSM_CPU_FREQ_MIN
+#        int "Min CPU Frequency"
+#        depends on MSM_CPU_FREQ_SET_MIN_MAX
+#        default 245760
+
+#endif # CPU_FREQ_MSM
+
+#config AXI_SCREEN_POLICY
+#	depends on ARCH_QSD8X50 || ARCH_MSM7X00A || ARCH_MSM7227 || ARCH_MSM7225
+#	depends on HAS_EARLYSUSPEND
+#	bool "Use higher AXI bus while screen ON"
+#	default y
+#	help
+#	  Simple AXI scaling based on screen ON/OFF and PWRC.
+
+config MSM_CPU_AVS
+	bool "Enable Hybrid Adaptive Voltage Scaling (HAVS)"
+	depends on ARCH_MSM_SCORPION
+	select QSD_SVS
+	default y
+	help
+	  This enables the Adaptive Voltage Scaling feature of
+	  Qualcomm ARMv7 CPUs. It adjusts the voltage for each frequency
+	  based on feedback from three ring
