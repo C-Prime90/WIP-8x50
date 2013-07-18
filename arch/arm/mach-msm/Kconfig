@@ -355,6 +355,12 @@ config ARCH_MSM_FLASHLIGHT
         help
           The flashlight driver is for MSM series.
 
+config MICROP_COMMON
+        tristate "MICROP COMMON Driver"
+        depends on I2C
+        help
+          HTC Microp-P support.
+
 config MSM_FIQ_SUPPORT
 	default y
 	bool "Enable installation of an FIQ handler."
