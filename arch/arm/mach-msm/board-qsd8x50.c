@@ -21,8 +21,10 @@
 #include <linux/platform_device.h>
 #include <linux/delay.h>
 #include <linux/usb/msm_hsusb.h>
+#if 0 /* mmc may need this */
 #include <linux/err.h>
 #include <linux/clkdev.h>
+#endif
 
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
@@ -33,8 +35,10 @@
 #include <mach/irqs.h>
 #include <mach/sirc.h>
 #include <mach/gpio.h>
+#if 0 /* mmc may need this */
 #include <mach/vreg.h>
 #include <mach/mmc.h>
+#endif
 
 #include "devices.h"
 
@@ -99,6 +103,7 @@ static struct platform_device *devices[] __initdata = {
 	&msm_device_hsusb_host,
 };
 
+#if 0 /* mmc may need this */
 static struct msm_mmc_gpio sdc1_gpio_cfg[] = {
 	{51, "sdc1_dat_3"},
 	{52, "sdc1_dat_2"},
@@ -170,6 +175,7 @@ static void __init qsd8x50_init_mmc(void)
 
 	msm_add_sdcc(1, &qsd8x50_sdc1_data, 0, 0);
 }
+#endif
 
 static void __init qsd8x50_map_io(void)
 {
@@ -189,7 +195,9 @@ static void __init qsd8x50_init(void)
 	msm_device_hsusb.dev.parent = &msm_device_otg.dev;
 	msm_device_hsusb_host.dev.parent = &msm_device_otg.dev;
 	platform_add_devices(devices, ARRAY_SIZE(devices));
+#if 0 /* mmc may need this */
 	qsd8x50_init_mmc();
+#endif
 }
 
 MACHINE_START(QSD8X50_SURF, "QCT QSD8X50 SURF")
